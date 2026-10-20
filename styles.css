@@ -27,6 +27,21 @@
 .breadcrumbs [aria-hidden]{color:#a0ada6}.breadcrumbs [aria-current]{color:var(--ink)}
 .course-home-header .lead{max-width:680px}
 .course-home-paths{margin:35px 0 45px;gap:20px}
+.course-home-paths>a:first-child{grid-column:1/-1;min-height:0}
+.course-home-paths>a:first-child p{max-width:650px}
+.lesson-status{font-size:13px;color:#6c5844;background:#f1eadd;border-right:3px solid #af8056;padding:12px 17px;line-height:1.9;margin:24px 0}
+.physics-equation{direction:ltr;text-align:center;background:#edf2e9;border:1px solid #cddccc;border-radius:6px;padding:18px 12px;font-family:var(--font);font-size:19px;line-height:1.8;overflow-wrap:anywhere}
+.physics-demo{padding:23px;background:#eef3eb;border:1px solid #c5d5c5;border-radius:8px;margin:26px 0}
+.physics-demo h3{margin:0 0 13px}
+.physics-demo label{display:block;font-size:15px}
+.physics-demo input[type=range]{width:100%;accent-color:#27605d;margin:20px 0 10px;cursor:pointer}
+.demo-readout{display:flex;align-items:center;justify-content:space-around;gap:18px;text-align:center;padding:14px 0}
+.demo-readout bdi{display:block;font-size:26px;font-weight:600;color:#163f42;line-height:1.4}
+.demo-readout small{display:block;font-size:12px;margin-top:5px;color:#506468}
+.physics-demo .demo-note{font-size:12px;color:#5c6d64;line-height:1.8;margin:12px 0 0}
+.vector-demo{display:block;width:100%;max-width:340px;margin:auto;direction:ltr}
+.vector-demo text{font-family:var(--font);font-size:17px}
+@media(max-width:760px){.physics-demo{padding:17px}.demo-readout bdi{font-size:21px}.demo-readout small{font-size:11px}.physics-equation{font-size:16px}.lesson-status{font-size:12px}}
 .course-home-paths>a{padding:27px;min-height:270px;gap:9px;transition:background .15s,border-color .15s}
 .course-home-paths>a:hover{border-color:#9fbba9}
 .course-home-paths strong{font-size:25px}

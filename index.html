@@ -10,6 +10,7 @@
   <script src="content.js" defer></script>
   <script src="wiki.js" defer></script>
   <script src="course.js" defer></script>
+  <script src="lesson-two.js" defer></script>
   <script src="wiki-app.js" defer></script>
 </head>
 <body>
@@ -23,10 +24,10 @@
   <div class="layout">
     <aside id="sidebar" aria-label="ניווט באתר הקורס">
       <div class="sidebar-heading"><a href="#home" id="home-link">דף הבית של הקורס</a></div>
-      <nav class="course-nav" aria-label="עמודי הקורס"><a href="#course" id="course-link">סילבוס ומטלה <span aria-hidden="true">↗</span></a><a href="#lesson-intro" id="intro-link">שיעור מבוא <span class="lesson-number" aria-hidden="true">01</span></a></nav>
+      <nav class="course-nav" aria-label="עמודי הקורס"><a href="#course" id="course-link">סילבוס ומטלה <span aria-hidden="true">↗</span></a><a href="#lesson-intro" id="intro-link">שיעור מבוא <span class="lesson-number" aria-hidden="true">01</span></a><a href="#lesson-mri" id="mri-link">מגנטיות גרעינית <span class="lesson-number" aria-hidden="true">02</span></a></nav>
       <nav id="course-navigation" class="section-nav" aria-label="תוכן הסילבוס והמטלה" hidden></nav>
       <div id="lesson-navigation" hidden>
-      <div class="sidebar-heading"><span>בשיעור המבוא</span><a href="#concepts" id="concept-count">מילון המושגים</a></div>
+      <div class="sidebar-heading"><span id="lesson-nav-title">בשיעור המבוא</span><a href="#concepts" id="concept-count">מילון המושגים</a></div>
       <div class="nav-modes" aria-label="צורת הניווט"><button id="nav-slides" aria-pressed="true">הרחבות</button><button id="nav-terms" aria-pressed="false">מושגים</button></div>
       <label class="search-label" for="search">חיפוש בנושא או במושג</label>
       <div class="search-wrap"><input id="search" type="search" placeholder="למשל שכבות הקורטקס, BOLD" autocomplete="off"><span aria-hidden="true">⌕</span></div>

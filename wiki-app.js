@@ -1,20 +1,34 @@
 (() => {
   'use strict';
-  const lessons=window.LESSON, readings=window.READING_SECTIONS, wiki=window.WIKI, course=window.COURSE, sources=window.SOURCES;
-  const deck='https://docs.google.com/presentation/d/1zVq-5TW5P-lT14nweOT85ExGQ2ZSPAABJhpa4e_bNwQ/edit';
+  const course=window.COURSE, sources=window.SOURCES, allWiki=window.WIKI, catalogue=window.COURSE_LESSONS;
+  let activeLesson=catalogue[0], readings=activeLesson.readings, wiki=allWiki.filter(t=>activeLesson.termIds.includes(t.id));
+  const lessonHref=(lesson=activeLesson)=>`#lesson-${lesson.id}`;
+  const indexHref=()=>activeLesson.id==='intro'?'#concepts':`#concepts-${activeLesson.id}`;
+  const readingHref=(s,lesson=activeLesson)=>lesson.id==='intro'?`#slide-${s.n}`:`#${lesson.id}-topic-${s.id}`;
+  const readingOrigin=s=>activeLesson.id==='intro'?String(s.n):`${activeLesson.id}-topic-${s.id}`;
+  function selectLesson(id){
+    const next=catalogue.find(l=>l.id===id)||catalogue[0];
+    if(next!==activeLesson)byId('search').value='';
+    activeLesson=next;readings=next.readings;wiki=allWiki.filter(t=>next.termIds.includes(t.id));
+  }
   const byId=id=>document.getElementById(id);
   const esc=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
   const pad=n=>String(n).padStart(2,'0');
   const plain=s=>s.replace(/<[^>]*>/g,' ');
   const normalize=s=>s.toLocaleLowerCase('he').replace(/[\u0591-\u05C7]/g,'').trim();
   const groups=items=>[...new Set(items.map(s=>s.group))];
-  const termById=id=>wiki.find(t=>t.id===id);
+  const termById=id=>allWiki.find(t=>t.id===id);
   const sectionFromSlide=n=>readings.find(s=>s.sourceSlides.includes(Number(n)));
   let current=null,origin='intro',activeTerm=null,navMode='slides',pageType='home';
   const termHref=id=>`#term-${id}?from=${origin}`;
-  const slideUrl=n=>`${deck}?slide=id.${lessons[n-1].slide}#slide=id.${lessons[n-1].slide}`;
-  const normalizedOrigin=value=>value==='course'?'course':sectionFromSlide(value)?.n||'intro';
-  function backContext(){const s=sectionFromSlide(origin);return s?{href:`#slide-${s.n}`,label:s.short||s.title}:origin==='course'?{href:'#course',label:'סילבוס ומטלה'}:{href:'#lesson-intro',label:'שיעור מבוא'};}
+  const slideUrl=(n,lesson=activeLesson)=>`${lesson.deck}?slide=id.${lesson.slides[n-1]}#slide=id.${lesson.slides[n-1]}`;
+  const normalizedOrigin=value=>value==='course'?'course':catalogue.some(l=>l.id===value)?value:catalogue.some(l=>l.readings.some(s=>readingHref(s,l).slice(1)===value))?value:catalogue[0].readings.some(s=>s.sourceSlides.includes(Number(value)))?String(catalogue[0].readings.find(s=>s.sourceSlides.includes(Number(value))).n):'intro';
+  function originLesson(value){return catalogue.find(l=>l.id===value||l.readings.some(s=>readingHref(s,l).slice(1)===value))?.id||'intro';}
+  function backContext(){
+    if(origin==='course')return {href:'#course',label:'סילבוס ומטלה'};
+    const section=activeLesson.id==='intro'?sectionFromSlide(origin):readings.find(s=>readingOrigin(s)===origin);
+    return section?{href:readingHref(section),label:section.short||section.title}:{href:lessonHref(),label:activeLesson.title};
+  }
   function sourcesHtml(refs){return refs?.length?`<section class="sources"><h2>מקורות וקריאה נוספת</h2><ul>${refs.map(key=>{const r=sources[key];return `<li><a href="${r.url}" target="_blank" rel="noopener" dir="auto">${esc(r.title)} ↗</a>${r.note?`<span class="source-description">${esc(r.note)}</span>`:''}</li>`;}).join('')}</ul></section>`:'';}
   function relatedHtml(terms,label='מושגים להעמקה'){return terms.length?`<section class="term-links"><h2>${label}</h2><div>${terms.map(t=>`<a href="${termHref(t.id)}" title="${esc(t.definition)}">${esc(t.title)} <span aria-hidden="true">↗</span></a>`).join('')}</div></section>`:'';}
   function toc(query=''){
@@ -24,18 +38,18 @@
     let html='';
     if(q){const cm=course.sections.filter(s=>normalize(`${s.label} ${s.search}`).includes(q));if(cm.length)html+=`<div class="toc-group"><h2>מידע על הקורס</h2>${cm.map(s=>`<a class="toc-link" href="#course-${s.id}">${esc(s.label)}</a>`).join('')}</div>`;}
     if(navMode==='terms'||q)html+=groups(tm).map(g=>`<div class="toc-group"><h2>${q?'מושגים · ':''}${esc(g)}</h2>${tm.filter(t=>t.group===g).map(t=>`<a class="toc-link term-toc" href="${termHref(t.id)}" ${activeTerm===t.id?'aria-current="page"':''}><span class="term-dot" aria-hidden="true">◦</span><span>${esc(t.title)}</span></a>`).join('')}</div>`).join('');
-    if(navMode==='slides'||q)html+=groups(sm).map(g=>`<div class="toc-group"><h2>${q?'הרחבות · ':''}${esc(g)}</h2>${sm.filter(s=>s.group===g).map(s=>`<a class="toc-link" href="#slide-${s.n}" ${pageType==='reading'&&current===s.n?'aria-current="page"':''}><span class="number" dir="ltr">${pad(s.n)}</span><span>${esc(s.short||s.title)}</span></a>`).join('')}</div>`).join('');
+    if(navMode==='slides'||q)html+=groups(sm).map(g=>`<div class="toc-group"><h2>${q?'הרחבות · ':''}${esc(g)}</h2>${sm.filter(s=>s.group===g).map(s=>`<a class="toc-link" href="${readingHref(s)}" ${pageType==='reading'&&current===s.n?'aria-current="page"':''}><span class="number" dir="ltr">${pad(s.n)}</span><span>${esc(s.short||s.title)}</span></a>`).join('')}</div>`).join('');
     byId('toc').innerHTML=html;byId('no-results').hidden=!!html;
     byId('nav-slides').setAttribute('aria-pressed',String(navMode==='slides'));byId('nav-terms').setAttribute('aria-pressed',String(navMode==='terms'));
   }
   function closeMenu(){byId('sidebar').classList.remove('is-open');byId('menu-button').setAttribute('aria-expanded','false');}
   function linkTerms(root,exclude=null){
     if(!root)return;
-    const candidates=wiki.filter(t=>t.id!==exclude).flatMap(t=>[...new Set([t.title,...t.aliases])].flatMap(alias=>[alias,...(/^[א-ת]/.test(alias)?['ב','ל','כ','מ','ו','ה'].map(p=>p+alias):[])].map(word=>({alias:word,id:t.id,definition:t.definition})))).sort((a,b)=>b.alias.length-a.alias.length);
+    const candidates=allWiki.filter(t=>t.id!==exclude).flatMap(t=>[...new Set([t.title,...t.aliases])].flatMap(alias=>[alias,...(/^[א-ת]/.test(alias)?['ב','ל','כ','מ','ו','ה'].map(p=>p+alias):[])].map(word=>({alias:word,id:t.id,definition:t.definition})))).sort((a,b)=>b.alias.length-a.alias.length);
     const unique=new Map();for(const c of candidates)if(!unique.has(c.alias.toLowerCase()))unique.set(c.alias.toLowerCase(),c);
     const quote=s=>s.replace(/[.*+?^${}()|[\]\\]/g,'\\$&');
     const re=new RegExp(`(?<![\\p{L}\\p{N}])(${[...unique.values()].map(c=>quote(c.alias)).join('|')})(?![\\p{L}\\p{N}])`,'giu');
-    const walker=document.createTreeWalker(root,NodeFilter.SHOW_TEXT,{acceptNode:n=>n.parentElement.closest('a,h1,h2,h3,summary,script,style')?NodeFilter.FILTER_REJECT:NodeFilter.FILTER_ACCEPT});
+    const walker=document.createTreeWalker(root,NodeFilter.SHOW_TEXT,{acceptNode:n=>n.parentElement.closest('a,h1,h2,h3,summary,script,style,svg,[data-demo],.physics-equation')?NodeFilter.FILTER_REJECT:NodeFilter.FILTER_ACCEPT});
     const nodes=[];while(walker.nextNode())nodes.push(walker.currentNode);const used=new Set();
     for(const node of nodes){const text=node.nodeValue;re.lastIndex=0;let match,last=0,changed=false;const fragment=document.createDocumentFragment();while((match=re.exec(text))){const c=unique.get(match[1].toLowerCase());if(used.has(c.id))continue;used.add(c.id);changed=true;fragment.append(text.slice(last,match.index));const a=document.createElement('a');a.className='wiki-link';a.href=termHref(c.id);a.title=c.definition;a.textContent=match[0];fragment.append(a);last=match.index+match[0].length;}if(changed){fragment.append(text.slice(last));node.replaceWith(fragment);}}
   }
@@ -45,37 +59,40 @@
     const inLesson=['intro','reading','term','index'].includes(pageType);
     byId('lesson-navigation').hidden=!inLesson;
     byId('course-navigation').hidden=pageType!=='course';
-    const active=pageType==='home'?'home':pageType==='course'?'course':'intro';
-    for(const id of ['home','course','intro']){
+    const active=pageType==='home'?'home':pageType==='course'?'course':activeLesson.id;
+    for(const id of ['home','course',...catalogue.map(l=>l.id)]){
       const link=byId(id+'-link');
       link.classList.toggle('is-active',id===active);
-      if(id===pageType)link.setAttribute('aria-current','page');else link.removeAttribute('aria-current');
+      if(id===active&&(pageType==='intro'||id===pageType))link.setAttribute('aria-current','page');else link.removeAttribute('aria-current');
     }
     const trail=[{href:'#home',label:'דף הבית'}];
     if(pageType==='course')trail.push({label:'סילבוס ומטלה'});
     else if(inLesson){
       if(pageType==='term'&&origin==='course')trail.push({href:'#course',label:'סילבוס ומטלה'});
-      else trail.push({href:'#lesson-intro',label:'שיעור מבוא'});
+      else trail.push({href:lessonHref(),label:activeLesson.title});
       if(pageType==='intro')delete trail[1].href;
-      else trail.push({label:pageType==='reading'?(sectionFromSlide(current)?.short||'הרחבה'):pageType==='term'?termById(activeTerm).title:'מילון המושגים'});
+      else trail.push({label:pageType==='reading'?(sectionFromSlide(current)?.short||sectionFromSlide(current)?.title||'הרחבה'):pageType==='term'?termById(activeTerm).title:'מילון המושגים'});
     }
     byId('breadcrumbs').hidden=pageType==='home';
     byId('breadcrumbs').innerHTML=trail.map(item=>item.href?`<a href="${item.href}">${esc(item.label)}</a>`:`<span aria-current="page">${esc(item.label)}</span>`).join('<span aria-hidden="true">/</span>');
+    byId('lesson-nav-title').textContent=`שיעור ${activeLesson.number} · ${activeLesson.title}`;
+    byId('concept-count').textContent=`${wiki.length} מושגים`;byId('concept-count').href=indexHref();
+    byId('search').placeholder=activeLesson.id==='intro'?'למשל שכבות הקורטקס, BOLD':'למשל ספין, פאזה, זווית הטיה';
     byId('pager').hidden=!byId('pager').innerHTML;
   }
 
   function showHome(){
     setPage('home');origin='intro';byId('chapter-label').textContent='האתר המלווה לקורס';byId('reading-time').textContent='ויקי הקורס';byId('mobile-current').textContent='דף הבית';
-    byId('article').innerHTML=`<header class="course-home-header"><div class="slide-kicker">קורס <bdi>${course.number}</bdi></div><h1>${esc(course.name)}<span class="title-detail">ויקי הקורס</span></h1><p class="lead">חומרי הקורס במקום אחד: סילבוס והנחיות המטלה, ולצדם הרחבות, מושגים ורקע מדעי לפי שיעור.</p></header><nav class="home-paths course-home-paths" aria-label="תכני הקורס"><a href="#course"><small>מידע על הקורס</small><strong>סילבוס ומטלה</strong><p>נושאי הלימוד, לוח המפגשים, דרכי ההערכה והנחיות אתגר מיפוי המוח.</p><span class="card-cta">לסילבוס ולמטלה <span aria-hidden="true">←</span></span></a><a href="#lesson-intro"><small>שיעור 01</small><strong>שיעור מבוא</strong><p>מה ממפים במוח, איך התחיל התחום, ומה אפשר ללמוד משיטות הדימות השונות.</p><span class="card-meta">${readings.length} הרחבות · ${wiki.length} מושגים · מצגת השיעור</span><span class="card-cta">לשיעור המבוא <span aria-hidden="true">←</span></span></a></nav>`;
+    byId('article').innerHTML=`<header class="course-home-header"><div class="slide-kicker">קורס <bdi>${course.number}</bdi></div><h1>${esc(course.name)}<span class="title-detail">ויקי הקורס</span></h1><p class="lead">חומרי הקורס במקום אחד: סילבוס והנחיות המטלה, ולצדם הרחבות, מושגים ורקע מדעי לפי שיעור.</p></header><nav class="home-paths course-home-paths" aria-label="תכני הקורס"><a href="#course"><small>מידע על הקורס</small><strong>סילבוס ומטלה</strong><p>נושאי הלימוד, לוח המפגשים, דרכי ההערכה והנחיות אתגר מיפוי המוח.</p><span class="card-cta">לסילבוס ולמטלה <span aria-hidden="true">←</span></span></a>${catalogue.map(l=>`<a href="${lessonHref(l)}"><small>שיעור ${l.number}</small><strong>${esc(l.title)}</strong><p>${esc(l.description)}</p><span class="card-meta">${l.readings.length} הרחבות · ${l.termIds.length} מושגים · מצגת השיעור</span><span class="card-cta">לחומרי השיעור <span aria-hidden="true">←</span></span></a>`).join('')}</nav>`;
     byId('pager').innerHTML='';document.title=`${course.name} · ${course.number} | ויקי הקורס`;
   }
   function showIntro(){
-    setPage('intro');origin='intro';navMode='slides';byId('chapter-label').textContent='שיעור 01';byId('reading-time').textContent=`${readings.length} הרחבות · ${wiki.length} מושגים`;byId('mobile-current').textContent='שיעור מבוא';
-    byId('article').innerHTML=`<header><div class="slide-kicker">לקרוא מעבר לשקופית</div><h1>שיעור מבוא<span class="title-detail">מושגי יסוד במיפוי המוח</span></h1><p class="lead">מה ממפים במוח, איך התפתח התחום ומה השיטות השונות מאפשרות לנו לראות? כאן תמצאו הרחבות לנושאים נבחרים והסברים למושגים שמופיעים בשיעור.</p></header><nav class="lesson-tools" aria-label="כלים לשיעור המבוא"><a href="${deck}" target="_blank" rel="noopener">מצגת השיעור <span aria-hidden="true">↗</span></a><a href="#concepts">מילון המושגים <small>${wiki.length} ערכים</small></a></nav><div class="body-content"><h2>מתחילים בשאלה שמעניינת אתכם</h2><p>מהן שכבות הקורטקס, מה מודד BOLD, ואיך אפשר ללמוד על תפקוד מפגיעה מוחית? מושגים מסומנים בטקסט פותחים ערכי הסבר. מכל ערך אפשר לחזור להרחבה שממנה יצאתם.</p><h2>הרחבות נבחרות לשיעור</h2><p>הנושאים מסודרים לפי מהלך השיעור. כמה שקופיות העוסקות באותו רעיון מופיעות יחד בהרחבה אחת, עם קישורים למקורות במצגת.</p></div><div class="reading-directory">${groups(readings).map(g=>`<section><h2>${esc(g)}</h2>${readings.filter(s=>s.group===g).map(s=>`<a href="#slide-${s.n}"><span>${esc(s.short||s.title)}</span><small>${s.sourceSlides.length===1?'שקופית':'שקופיות'} <bdi>${s.sourceSlides.join(', ')}</bdi></small></a>`).join('')}</section>`).join('')}</div><aside class="takeaway"><span class="label">לקראת השיעור הבא</span><p>ממשיכים לבסיס הפיזיקלי של MRI. אפשר להתחיל בערך <a href="#term-spin?from=intro">ספין</a>, ולהמשיך לתדירות לרמור ולרלקסציה.</p></aside>`;
-    byId('pager').innerHTML='';document.title=`שיעור מבוא | ${course.name} · ${course.number}`;linkTerms(byId('article').querySelector('.body-content'));
+    setPage('intro');origin=activeLesson.id;navMode='slides';byId('chapter-label').textContent=`שיעור ${activeLesson.number}`;byId('reading-time').textContent=`${readings.length} הרחבות · ${wiki.length} מושגים`;byId('mobile-current').textContent=activeLesson.title;
+    byId('article').innerHTML=`<header><div class="slide-kicker">לקרוא מעבר לשקופית · שיעור ${activeLesson.number}</div><h1>${esc(activeLesson.title)}<span class="title-detail">${esc(activeLesson.subtitle)}</span></h1><p class="lead">${esc(activeLesson.lead)}</p></header>${activeLesson.draft?'<p class="lesson-status">המצגת עדיין בעריכה. ההרחבות מבוססות על התוכן שנמסר ב־20.10.2026; מספור השקופיות עשוי להשתנות.</p>':''}<nav class="lesson-tools" aria-label="כלים לשיעור"><a href="${activeLesson.deck}" target="_blank" rel="noopener">מצגת השיעור <span aria-hidden="true">↗</span></a><a href="${indexHref()}">מילון המושגים <small>${wiki.length} ערכים</small></a></nav><div class="body-content"><h2>מתחילים בשאלה שמעניינת אתכם</h2><p>${activeLesson.id==='intro'?'מהן שכבות הקורטקס, מה מודד BOLD, ואיך אפשר ללמוד על תפקוד מפגיעה מוחית?':'מהו ספין, למה יש שתי רמות אנרגיה, ואיך פולס רדיו יוצר אות?'} מושגים מסומנים בטקסט פותחים ערכי הסבר. מכל ערך אפשר לחזור להרחבה שממנה יצאתם.</p><h2>הרחבות נבחרות לשיעור</h2><p>הנושאים מסודרים לפי מהלך השיעור. שקופיות העוסקות באותו רעיון מופיעות יחד בהרחבה אחת, עם קישורים למקומן במצגת.</p></div><div class="reading-directory">${groups(readings).map(g=>`<section><h2>${esc(g)}</h2>${readings.filter(s=>s.group===g).map(s=>`<a href="${readingHref(s)}"><span>${esc(s.short||s.title)}</span><small>${s.sourceSlides.length===1?'שקופית':'שקופיות'} <bdi>${s.sourceSlides.join(', ')}</bdi></small></a>`).join('')}</section>`).join('')}</div><aside class="takeaway"><span class="label">ממשיכים ללמוד</span><p>${activeLesson.id==='intro'?'<a href="#lesson-mri">לשיעור 02: מגנטיות גרעינית והבסיס הפיזיקלי של MRI ←</a>':'בהמשך נעמיק ברלקסציה: כיצד המגנטיזציה מתאוששת ומאבדת תיאום. בינתיים אפשר לקרוא את <a href="#term-relaxation?from=mri">ערך המבוא על T1 ו־T2</a>.'}</p></aside>`;
+    byId('pager').innerHTML='';document.title=`${activeLesson.title} | ${course.name} · ${course.number}`;linkTerms(byId('article').querySelector('.body-content'));
   }
   function showCourse(anchor){
-    setPage('course');origin='course';navMode='slides';byId('chapter-label').textContent='מידע על הקורס';byId('reading-time').textContent='לפי המצגת המעודכנת';byId('mobile-current').textContent='סילבוס ומטלה';
+    selectLesson('intro');setPage('course');origin='course';navMode='slides';byId('chapter-label').textContent='מידע על הקורס';byId('reading-time').textContent='לפי המצגת המעודכנת';byId('mobile-current').textContent='סילבוס ומטלה';
     byId('article').innerHTML=`<header><div class="slide-kicker"><span>${esc(course.name)} · קורס <bdi>${course.number}</bdi></span></div><h1>${course.title}</h1><p class="english-title" lang="en" dir="ltr">${course.en}</p><p class="lead">${course.lead}</p><nav class="course-jumps" aria-label="חלקי עמוד הקורס">${course.sections.map(s=>`<a href="#course-${s.id}">${s.label}</a>`).join('')}</nav></header>
     <div class="body-content course-body">
     <section id="course-syllabus"><h2>מה נלמד בקורס?</h2><div class="course-blocks">${course.blocks.map(b=>`<div><span class="block-number">${b.n}</span><div><h3>${b.title}</h3><small dir="auto">${b.dates}</small><p>${b.text}</p></div></div>`).join('')}</div><p>לאורך הסמסטר מתקיים אתגר מיפוי המוח: פרויקט קבוצתי שבו מציעים ניסוי fMRI, מכינים הצעות נבחרות לסריקה ומפרשים את התוצאות.</p><details class="course-details"><summary>צוות הקורס ופרטי קשר</summary><div class="team-list">${course.team.map(([name,email])=>`<div><strong>${name}</strong><a href="mailto:${email}" dir="ltr">${email}</a></div>`).join('')}</div></details><p class="course-source"><a href="${slideUrl(2)}" target="_blank" rel="noopener">הסילבוס במצגת ↗</a></p></section>
@@ -87,36 +104,57 @@
     document.title=`סילבוס ומטלה | ${course.name} · ${course.number}`;linkTerms(byId('article').querySelector('.body-content'));
   }
   function showSlide(s){
-    setPage('reading');current=s.n;origin=s.n;navMode='slides';readingInfo(s.group,s.lead+s.body+s.takeaway);byId('mobile-current').textContent='הרחבה לשיעור';
-    const terms=wiki.filter(t=>t.slides.some(n=>s.sourceSlides.includes(n)));
+    setPage('reading');current=s.n;origin=readingOrigin(s);navMode='slides';readingInfo(s.group,s.lead+s.body+s.takeaway);byId('mobile-current').textContent='הרחבה לשיעור';
+    const terms=s.terms?s.terms.map(termById).filter(Boolean):wiki.filter(t=>t.slides.some(n=>s.sourceSlides.includes(n)));
     byId('article').innerHTML=`<header><div class="slide-kicker">הרחבה ל${s.sourceSlides.length===1?'שקופית':'שקופיות'} <bdi>${s.sourceSlides.join(', ')}</bdi></div><h1>${esc(s.title)}</h1><p class="english-title" dir="ltr" lang="en">${esc(s.en)}</p><p class="lead">${esc(s.lead)}</p><div class="article-meta"><span class="meta-label">במצגת:</span>${s.sourceSlides.map(n=>`<a href="${slideUrl(n)}" target="_blank" rel="noopener">שקופית ${n} ↗</a>`).join('')}<span class="meta-label">מושג מסומן פותח ערך להעמקה</span></div></header><div class="body-content">${s.body}</div>${relatedHtml(terms)}<aside class="takeaway"><span class="label">הרעיון לקחת הלאה</span><p>${esc(s.takeaway)}</p></aside>${sourcesHtml(s.refs)}`;
     const pos=readings.indexOf(s),prev=readings[pos-1],next=readings[pos+1];
-    byId('pager').innerHTML=`${prev?`<a href="#slide-${prev.n}"><small>→ ההרחבה הקודמת</small><span>${esc(prev.short||prev.title)}</span></a>`:'<a href="#lesson-intro"><small>→ חזרה לשיעור</small><span>שיעור מבוא · כל ההרחבות</span></a>'}${next?`<a class="next" href="#slide-${next.n}"><small>ההרחבה הבאה ←</small><span>${esc(next.short||next.title)}</span></a>`:'<a class="next" href="#concepts"><small>להמשיך לחקור ←</small><span>כל המושגים בשיעור</span></a>'}`;
+    byId('pager').innerHTML=`${prev?`<a href="${readingHref(prev)}"><small>→ ההרחבה הקודמת</small><span>${esc(prev.short||prev.title)}</span></a>`:`<a href="${lessonHref()}"><small>→ חזרה לשיעור</small><span>${esc(activeLesson.title)} · כל ההרחבות</span></a>`}${next?`<a class="next" href="${readingHref(next)}"><small>ההרחבה הבאה ←</small><span>${esc(next.short||next.title)}</span></a>`:`<a class="next" href="${indexHref()}"><small>להמשיך לחקור ←</small><span>כל המושגים בשיעור</span></a>`}`;
     document.title=`${s.title} | ${course.name} · ${course.number}`;linkTerms(byId('article').querySelector('.body-content'));linkTerms(byId('article').querySelector('.lead'));
   }
-  function appearances(t){const relevant=readings.filter(s=>t.slides.some(n=>s.sourceSlides.includes(n)));const links=relevant.map(s=>`<a href="#slide-${s.n}">${esc(s.short||s.title)}</a>`);if(t.slides.some(n=>n>=2&&n<=6))links.push('<a href="#course">סילבוס ומטלה</a>');return links.length?`<section class="appears-in"><h2>פוגשים את המושג בהרחבות</h2>${links.join('')}</section>`:'';}
+  function appearances(t){
+    const links=catalogue.flatMap(l=>l.readings.filter(s=>s.terms?s.terms.includes(t.id):t.slides.some(n=>s.sourceSlides.includes(n))).map(s=>`<a href="${readingHref(s,l)}">שיעור ${l.number} · ${esc(s.short||s.title)}</a>`));
+    if(t.slides.some(n=>n>=2&&n<=6))links.push('<a href="#course">סילבוס ומטלה</a>');
+    return links.length?`<section class="appears-in"><h2>פוגשים את המושג בהרחבות</h2>${links.join('')}</section>`:'';
+  }
   function showTerm(t){
     setPage('term');activeTerm=t.id;navMode='terms';readingInfo(`ויקי הקורס · ${t.group}`,t.definition+t.body);byId('mobile-current').textContent='מילון המושגים';const back=backContext();
-    byId('article').innerHTML=`<header><a class="back-to-lesson" href="${back.href}">→ חזרה: ${esc(back.label)}</a><div class="slide-kicker">ערך בוויקי · ${esc(t.group)}</div><h1>${esc(t.title)}</h1><p class="english-title" dir="ltr" lang="en">${esc(t.en)}</p><p class="lead">${esc(t.definition)}</p><div class="article-meta"><a href="#concepts">לכל המושגים</a><span class="meta-label">הגדרה, רקע והקשר לשיעור</span></div></header><div class="body-content">${t.body}</div>${relatedHtml(t.related.map(termById).filter(Boolean),'מושגים קשורים')}${sourcesHtml(t.refs)}${appearances(t)}`;
-    byId('pager').innerHTML=`<a href="${back.href}"><small>→ חזרה</small><span>${esc(back.label)}</span></a><a class="next" href="#concepts"><small>להמשך קריאה ←</small><span>כל המושגים</span></a>`;
+    byId('article').innerHTML=`<header><a class="back-to-lesson" href="${back.href}">→ חזרה: ${esc(back.label)}</a><div class="slide-kicker">ערך בוויקי · ${esc(t.group)}</div><h1>${esc(t.title)}</h1><p class="english-title" dir="ltr" lang="en">${esc(t.en)}</p><p class="lead">${esc(t.definition)}</p><div class="article-meta"><a href="${indexHref()}">לכל המושגים</a><span class="meta-label">הגדרה, רקע והקשר לשיעור</span></div></header><div class="body-content">${t.body}</div>${relatedHtml(t.related.map(termById).filter(Boolean),'מושגים קשורים')}${sourcesHtml(t.refs)}${appearances(t)}`;
+    byId('pager').innerHTML=`<a href="${back.href}"><small>→ חזרה</small><span>${esc(back.label)}</span></a><a class="next" href="${indexHref()}"><small>להמשך קריאה ←</small><span>כל המושגים</span></a>`;
     document.title=`${t.title} | ${course.name} · ${course.number}`;linkTerms(byId('article').querySelector('.body-content'),t.id);
   }
   function showIndex(){
-    setPage('index');origin='intro';activeTerm='index';navMode='terms';byId('chapter-label').textContent='שיעור מבוא · מילון המושגים';byId('reading-time').textContent=`${wiki.length} ערכים`;byId('mobile-current').textContent='מילון המושגים';
+    setPage('index');origin=activeLesson.id;activeTerm='index';navMode='terms';byId('chapter-label').textContent=`${activeLesson.title} · מילון המושגים`;byId('reading-time').textContent=`${wiki.length} ערכים`;byId('mobile-current').textContent='מילון המושגים';
     byId('article').innerHTML=`<header><div class="slide-kicker">ללמוד מושג, לגלות את ההקשר</div><h1>המושגים שמאחורי השקופיות</h1><p class="lead">הסברים מהיסוד, רקע היסטורי וקישורים בין רעיונות. בחרו מושג או חפשו בעברית ובאנגלית.</p></header><div class="wiki-directory">${groups(wiki).map(g=>`<section><h2>${esc(g)}</h2>${wiki.filter(t=>t.group===g).map(t=>`<a href="${termHref(t.id)}"><strong>${esc(t.title)}</strong><span class="directory-en" lang="en" dir="ltr">${esc(t.en)}</span><p>${esc(t.definition)}</p></a>`).join('')}</section>`).join('')}</div>`;
     const back=backContext();byId('pager').innerHTML=`<a href="${back.href}"><small>→ חזרה</small><span>${esc(back.label)}</span></a>`;document.title=`מילון המושגים | ${course.name} · ${course.number}`;
   }
   function render(focus=false){
     const term=location.hash.match(/^#term-([a-z0-9-]+)(?:\?from=([a-z0-9-]+))?$/),slide=location.hash.match(/^#slide-(\d+)$/),courseRoute=location.hash.match(/^#course(?:-([a-z]+))?$/);
+    const lesson=catalogue.find(l=>location.hash===lessonHref(l));
+    const topic=catalogue.flatMap(l=>l.readings.map(s=>({lesson:l,section:s}))).find(x=>location.hash===readingHref(x.section,x.lesson));
+    const indexLesson=catalogue.find(l=>location.hash===(l.id==='intro'?'#concepts':`#concepts-${l.id}`));
     let anchor=null;
-    if(term&&termById(term[1])){origin=normalizedOrigin(term[2]||origin);showTerm(termById(term[1]));}
+    if(term&&termById(term[1])){origin=normalizedOrigin(term[2]||origin);selectLesson(originLesson(origin));showTerm(termById(term[1]));}
     else if(courseRoute){anchor=course.sections.some(s=>s.id===courseRoute[1])?courseRoute[1]:null;showCourse(anchor);}
-    else if(location.hash==='#lesson-intro')showIntro();
-    else if(location.hash==='#concepts')showIndex();
-    else if(slide){const n=Number(slide[1]),section=sectionFromSlide(n);if(section)showSlide(section);else if(n>=2&&n<=6)showCourse();else if(n===26){origin='intro';showTerm(termById('spin'));}else if(n===1)showIntro();else showHome();}
+    else if(lesson){selectLesson(lesson.id);showIntro();}
+    else if(indexLesson){selectLesson(indexLesson.id);showIndex();}
+    else if(topic){selectLesson(topic.lesson.id);showSlide(topic.section);}
+    else if(slide){selectLesson('intro');const n=Number(slide[1]),section=sectionFromSlide(n);if(section)showSlide(section);else if(n>=2&&n<=6)showCourse();else if(n===26){origin='intro';showTerm(termById('spin'));}else if(n===1)showIntro();else showHome();}
     else showHome();
-    toc(byId('search').value);updateNavigation();closeMenu();if(focus){byId('sidebar').scrollTop=0;window.scrollTo({top:0,behavior:'instant'});byId('reading').focus({preventScroll:true});}
+    mountDemos();toc(byId('search').value);updateNavigation();closeMenu();if(focus){byId('sidebar').scrollTop=0;window.scrollTo({top:0,behavior:'instant'});byId('reading').focus({preventScroll:true});}
     if(anchor)byId(`course-${anchor}`).scrollIntoView({block:'start',behavior:'instant'});
+  }
+  function mountDemos(){
+    const larmor=byId('article').querySelector('[data-demo="larmor"]');
+    if(larmor){
+      larmor.innerHTML=`<div class="physics-demo"><h3>נסו לשנות את השדה</h3><label for="field-slider">עוצמת השדה B₀ בטסלה</label><input id="field-slider" type="range" min="0.5" max="7" step="0.1" value="3" dir="ltr"><div class="demo-readout" aria-live="polite"><span><bdi id="field-value">3.0 T</bdi><small>השדה הראשי</small></span><span aria-hidden="true">←</span><span><bdi id="frequency-value">127.7 MHz</bdi><small>תדירות לרמור לפרוטון</small></span></div><p class="demo-note">קירוב לפי 42.58 MHz/T. הכפלת השדה מכפילה את התדירות.</p></div>`;
+      byId('field-slider').addEventListener('input',e=>{const field=Number(e.target.value);byId('field-value').textContent=field.toFixed(1)+' T';byId('frequency-value').textContent=(42.577478461*field).toFixed(1)+' MHz';});
+    }
+    const flip=byId('article').querySelector('[data-demo="flip"]');
+    if(flip){
+      flip.innerHTML=`<div class="physics-demo"><h3>סובבו את המגנטיזציה</h3><label for="angle-slider">זווית הפולס: <output id="angle-value" for="angle-slider">90°</output></label><input id="angle-slider" type="range" min="0" max="180" step="1" value="90" dir="ltr"><svg class="vector-demo" viewBox="0 0 340 270" role="img" aria-label="היטל של וקטור המגנטיזציה על הציר האורכי ועל המישור הרוחבי"><defs><marker id="demo-arrow" markerWidth="7" markerHeight="7" refX="5" refY="3" orient="auto"><path d="M0,0 L0,6 L6,3 z" fill="#163f42"/></marker></defs><path d="M60 245 V20 M40 135 H300" fill="none" stroke="#a8b7ad" stroke-width="1.5"/><path d="M60 35 A100 100 0 0 1 60 235" fill="none" stroke="#ced8cd" stroke-dasharray="4 5"/><text x="42" y="18">z</text><text x="306" y="141">xy</text><path id="component-lines" fill="none" stroke="#ae774e" stroke-width="2" stroke-dasharray="5 4"/><line id="magnet-vector" x1="60" y1="135" x2="160" y2="135" stroke="#163f42" stroke-width="4" marker-end="url(#demo-arrow)"/><text id="magnet-label" x="175" y="125" fill="#163f42">M</text></svg><div class="demo-readout" aria-live="polite"><span><bdi id="mz-value">0.00</bdi><small>Mz / M₀ · רכיב אורכי</small></span><span><bdi id="mxy-value">1.00</bdi><small>|Mxy| / M₀ · רכיב רוחבי</small></span></div><p class="demo-note">מתחילים משיווי משקל, מניחים פולס אידיאלי ומזניחים רלקסציה. האורך נשאר M₀; הקווים המקווקווים מראים את ההיטלים.</p></div>`;
+      const update=()=>{const angle=Number(byId('angle-slider').value),rad=angle*Math.PI/180;const z=Math.cos(rad),xy=Math.sin(rad),x=60+100*xy,y=135-100*z;byId('angle-value').textContent=angle+'°';byId('mz-value').textContent=(Math.abs(z)<1e-10?0:z).toFixed(2);byId('mxy-value').textContent=(Math.abs(xy)<1e-10?0:xy).toFixed(2);byId('magnet-vector').setAttribute('x2',x);byId('magnet-vector').setAttribute('y2',y);byId('magnet-label').setAttribute('x',x+13);byId('magnet-label').setAttribute('y',y-7);byId('component-lines').setAttribute('d',`M60 ${y} H${x} V135`);};
+      byId('angle-slider').addEventListener('input',update);update();
+    }
   }
   byId('course-navigation').innerHTML=course.sections.map(s=>`<a class="toc-link" href="#course-${s.id}">${esc(s.label)}</a>`).join('');
   byId('concept-count').textContent=`${wiki.length} מושגים`;
