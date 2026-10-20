@@ -4,8 +4,9 @@
   let activeLesson=catalogue[0], readings=activeLesson.readings, wiki=allWiki.filter(t=>activeLesson.termIds.includes(t.id));
   const lessonHref=(lesson=activeLesson)=>`#lesson-${lesson.id}`;
   const indexHref=()=>activeLesson.id==='intro'?'#concepts':`#concepts-${activeLesson.id}`;
-  const readingHref=(s,lesson=activeLesson)=>lesson.id==='intro'?`#slide-${s.n}`:`#${lesson.id}-topic-${s.id}`;
-  const readingOrigin=s=>activeLesson.id==='intro'?String(s.n):`${activeLesson.id}-topic-${s.id}`;
+  const lessonItems=lesson=>lesson.foundation?[lesson.foundation,...lesson.readings]:lesson.readings;
+  const readingHref=(s,lesson=activeLesson)=>s===lesson.foundation?'#physics-basics':lesson.id==='intro'?`#slide-${s.n}`:`#${lesson.id}-topic-${s.id}`;
+  const readingOrigin=s=>activeLesson.id==='intro'?String(s.n):readingHref(s).slice(1);
   function selectLesson(id){
     const next=catalogue.find(l=>l.id===id)||catalogue[0];
     if(next!==activeLesson)byId('search').value='';
@@ -18,27 +19,34 @@
   const normalize=s=>s.toLocaleLowerCase('he').replace(/[\u0591-\u05C7]/g,'').trim();
   const groups=items=>[...new Set(items.map(s=>s.group))];
   const termById=id=>allWiki.find(t=>t.id===id);
-  const sectionFromSlide=n=>readings.find(s=>s.sourceSlides.includes(Number(n)));
+  const sectionFromSlide=n=>Number(n)===0&&activeLesson.foundation?activeLesson.foundation:readings.find(s=>s.sourceSlides.includes(Number(n)));
   let current=null,origin='intro',activeTerm=null,navMode='slides',pageType='home';
   const termHref=id=>`#term-${id}?from=${origin}`;
   const slideUrl=(n,lesson=activeLesson)=>`${lesson.deck}?slide=id.${lesson.slides[n-1]}#slide=id.${lesson.slides[n-1]}`;
-  const normalizedOrigin=value=>value==='course'?'course':catalogue.some(l=>l.id===value)?value:catalogue.some(l=>l.readings.some(s=>readingHref(s,l).slice(1)===value))?value:catalogue[0].readings.some(s=>s.sourceSlides.includes(Number(value)))?String(catalogue[0].readings.find(s=>s.sourceSlides.includes(Number(value))).n):'intro';
-  function originLesson(value){return catalogue.find(l=>l.id===value||l.readings.some(s=>readingHref(s,l).slice(1)===value))?.id||'intro';}
+  const normalizedOrigin=value=>value==='course'?'course':catalogue.some(l=>l.id===value)?value:catalogue.some(l=>lessonItems(l).some(s=>readingHref(s,l).slice(1)===value))?value:catalogue[0].readings.some(s=>s.sourceSlides.includes(Number(value)))?String(catalogue[0].readings.find(s=>s.sourceSlides.includes(Number(value))).n):'intro';
+  function originLesson(value){return catalogue.find(l=>l.id===value||lessonItems(l).some(s=>readingHref(s,l).slice(1)===value))?.id||'intro';}
   function backContext(){
     if(origin==='course')return {href:'#course',label:'סילבוס ומטלה'};
-    const section=activeLesson.id==='intro'?sectionFromSlide(origin):readings.find(s=>readingOrigin(s)===origin);
+    const section=activeLesson.id==='intro'?sectionFromSlide(origin):lessonItems(activeLesson).find(s=>readingOrigin(s)===origin);
     return section?{href:readingHref(section),label:section.short||section.title}:{href:lessonHref(),label:activeLesson.title};
   }
   function sourcesHtml(refs){return refs?.length?`<section class="sources"><h2>מקורות וקריאה נוספת</h2><ul>${refs.map(key=>{const r=sources[key];return `<li><a href="${r.url}" target="_blank" rel="noopener" dir="auto">${esc(r.title)} ↗</a>${r.note?`<span class="source-description">${esc(r.note)}</span>`:''}</li>`;}).join('')}</ul></section>`:'';}
   function relatedHtml(terms,label='מושגים להעמקה'){return terms.length?`<section class="term-links"><h2>${label}</h2><div>${terms.map(t=>`<a href="${termHref(t.id)}" title="${esc(t.definition)}">${esc(t.title)} <span aria-hidden="true">↗</span></a>`).join('')}</div></section>`:'';}
+  function prerequisitesHtml(item){
+    const terms=(item.basics||[]).map(termById).filter(Boolean);
+    return terms.length?`<aside class="takeaway"><span class="label">צריכים רגע של רקע?</span><p>הסברים מהיסוד: ${terms.map(t=>`<a href="${termHref(t.id)}">${esc(t.title)}</a>`).join(' · ')}</p><p><a href="#physics-basics">למסלול ״פיזיקה מההתחלה״ ←</a></p></aside>`:'';
+  }
+  function foundationHtml(){
+    return activeLesson.foundation?`<aside class="takeaway"><span class="label">ללא ידע קודם בפיזיקה</span><h2><a href="#physics-basics">פיזיקה מההתחלה ←</a></h2><p>מהו שדה, מה מסמל חץ, ומה ההבדל בין תדירות לעוצמה? מסלול קצר עם דוגמאות, מושגי יסוד והדגמות. אפשר להתחיל כאן או לפתוח הסברי רקע מתוך כל הרחבה.</p></aside>`:'';
+  }
   function toc(query=''){
     const q=normalize(query);
-    const sm=readings.filter(s=>normalize(`${s.n} ${s.sourceSlides.join(' ')} ${s.title} ${s.short||''} ${s.en} ${s.lead} ${plain(s.body)}`).includes(q));
-    const tm=wiki.filter(t=>normalize(`${t.title} ${t.en} ${t.aliases.join(' ')} ${t.definition} ${plain(t.body)}`).includes(q));
+    const sm=lessonItems(activeLesson).filter(s=>normalize(`${s.n} ${s.sourceSlides.join(' ')} ${s.title} ${s.short||''} ${s.en} ${s.lead} ${s.simple||''} ${plain(s.body)}`).includes(q));
+    const tm=wiki.filter(t=>normalize(`${t.title} ${t.en} ${t.aliases.join(' ')} ${t.definition} ${t.simple||''} ${plain(t.body)}`).includes(q));
     let html='';
     if(q){const cm=course.sections.filter(s=>normalize(`${s.label} ${s.search}`).includes(q));if(cm.length)html+=`<div class="toc-group"><h2>מידע על הקורס</h2>${cm.map(s=>`<a class="toc-link" href="#course-${s.id}">${esc(s.label)}</a>`).join('')}</div>`;}
     if(navMode==='terms'||q)html+=groups(tm).map(g=>`<div class="toc-group"><h2>${q?'מושגים · ':''}${esc(g)}</h2>${tm.filter(t=>t.group===g).map(t=>`<a class="toc-link term-toc" href="${termHref(t.id)}" ${activeTerm===t.id?'aria-current="page"':''}><span class="term-dot" aria-hidden="true">◦</span><span>${esc(t.title)}</span></a>`).join('')}</div>`).join('');
-    if(navMode==='slides'||q)html+=groups(sm).map(g=>`<div class="toc-group"><h2>${q?'הרחבות · ':''}${esc(g)}</h2>${sm.filter(s=>s.group===g).map(s=>`<a class="toc-link" href="${readingHref(s)}" ${pageType==='reading'&&current===s.n?'aria-current="page"':''}><span class="number" dir="ltr">${pad(s.n)}</span><span>${esc(s.short||s.title)}</span></a>`).join('')}</div>`).join('');
+    if(navMode==='slides'||q)html+=groups(sm).map(g=>`<div class="toc-group"><h2>${q?'הרחבות · ':''}${esc(g)}</h2>${sm.filter(s=>s.group===g).map(s=>`<a class="toc-link" href="${readingHref(s)}" ${pageType==='reading'&&current===s.n?'aria-current="page"':''}><span class="number" dir="ltr">${s===activeLesson.foundation?'◇':pad(s.n)}</span><span>${esc(s.short||s.title)}</span></a>`).join('')}</div>`).join('');
     byId('toc').innerHTML=html;byId('no-results').hidden=!!html;
     byId('nav-slides').setAttribute('aria-pressed',String(navMode==='slides'));byId('nav-terms').setAttribute('aria-pressed',String(navMode==='terms'));
   }
@@ -88,7 +96,7 @@
   }
   function showIntro(){
     setPage('intro');origin=activeLesson.id;navMode='slides';byId('chapter-label').textContent=`שיעור ${activeLesson.number}`;byId('reading-time').textContent=`${readings.length} הרחבות · ${wiki.length} מושגים`;byId('mobile-current').textContent=activeLesson.title;
-    byId('article').innerHTML=`<header><div class="slide-kicker">לקרוא מעבר לשקופית · שיעור ${activeLesson.number}</div><h1>${esc(activeLesson.title)}<span class="title-detail">${esc(activeLesson.subtitle)}</span></h1><p class="lead">${esc(activeLesson.lead)}</p></header>${activeLesson.draft?'<p class="lesson-status">המצגת עדיין בעריכה. ההרחבות מבוססות על התוכן שנמסר ב־20.10.2026; מספור השקופיות עשוי להשתנות.</p>':''}<nav class="lesson-tools" aria-label="כלים לשיעור"><a href="${activeLesson.deck}" target="_blank" rel="noopener">מצגת השיעור <span aria-hidden="true">↗</span></a><a href="${indexHref()}">מילון המושגים <small>${wiki.length} ערכים</small></a></nav><div class="body-content"><h2>מתחילים בשאלה שמעניינת אתכם</h2><p>${activeLesson.id==='intro'?'מהן שכבות הקורטקס, מה מודד BOLD, ואיך אפשר ללמוד על תפקוד מפגיעה מוחית?':'מהו ספין, למה יש שתי רמות אנרגיה, ואיך פולס רדיו יוצר אות?'} מושגים מסומנים בטקסט פותחים ערכי הסבר. מכל ערך אפשר לחזור להרחבה שממנה יצאתם.</p><h2>הרחבות נבחרות לשיעור</h2><p>הנושאים מסודרים לפי מהלך השיעור. שקופיות העוסקות באותו רעיון מופיעות יחד בהרחבה אחת, עם קישורים למקומן במצגת.</p></div><div class="reading-directory">${groups(readings).map(g=>`<section><h2>${esc(g)}</h2>${readings.filter(s=>s.group===g).map(s=>`<a href="${readingHref(s)}"><span>${esc(s.short||s.title)}</span><small>${s.sourceSlides.length===1?'שקופית':'שקופיות'} <bdi>${s.sourceSlides.join(', ')}</bdi></small></a>`).join('')}</section>`).join('')}</div><aside class="takeaway"><span class="label">ממשיכים ללמוד</span><p>${activeLesson.id==='intro'?'<a href="#lesson-mri">לשיעור 02: מגנטיות גרעינית והבסיס הפיזיקלי של MRI ←</a>':'בהמשך נעמיק ברלקסציה: כיצד המגנטיזציה מתאוששת ומאבדת תיאום. בינתיים אפשר לקרוא את <a href="#term-relaxation?from=mri">ערך המבוא על T1 ו־T2</a>.'}</p></aside>`;
+    byId('article').innerHTML=`<header><div class="slide-kicker">לקרוא מעבר לשקופית · שיעור ${activeLesson.number}</div><h1>${esc(activeLesson.title)}<span class="title-detail">${esc(activeLesson.subtitle)}</span></h1><p class="lead">${esc(activeLesson.lead)}</p></header>${activeLesson.draft?'<p class="lesson-status">המצגת עדיין בעריכה. ההרחבות מבוססות על התוכן שנמסר ב־20.10.2026; מספור השקופיות עשוי להשתנות.</p>':''}<nav class="lesson-tools" aria-label="כלים לשיעור"><a href="${activeLesson.deck}" target="_blank" rel="noopener">מצגת השיעור <span aria-hidden="true">↗</span></a><a href="${indexHref()}">מילון המושגים <small>${wiki.length} ערכים</small></a></nav>${foundationHtml()}<div class="body-content"><h2>מתחילים בשאלה שמעניינת אתכם</h2><p>${activeLesson.id==='intro'?'מהן שכבות הקורטקס, מה מודד BOLD, ואיך אפשר ללמוד על תפקוד מפגיעה מוחית?':'מהו ספין, למה יש שתי רמות אנרגיה, ואיך פולס רדיו יוצר אות?'} מושגים מסומנים בטקסט פותחים ערכי הסבר. מכל ערך אפשר לחזור להרחבה שממנה יצאתם.</p><h2>הרחבות נבחרות לשיעור</h2><p>הנושאים מסודרים לפי מהלך השיעור. שקופיות העוסקות באותו רעיון מופיעות יחד בהרחבה אחת, עם קישורים למקומן במצגת.</p></div><div class="reading-directory">${groups(readings).map(g=>`<section><h2>${esc(g)}</h2>${readings.filter(s=>s.group===g).map(s=>`<a href="${readingHref(s)}"><span>${esc(s.short||s.title)}</span><small>${s.sourceSlides.length===1?'שקופית':'שקופיות'} <bdi>${s.sourceSlides.join(', ')}</bdi></small></a>`).join('')}</section>`).join('')}</div><aside class="takeaway"><span class="label">ממשיכים ללמוד</span><p>${activeLesson.id==='intro'?'<a href="#lesson-mri">לשיעור 02: מגנטיות גרעינית והבסיס הפיזיקלי של MRI ←</a>':'בהמשך נעמיק ברלקסציה: כיצד המגנטיזציה מתאוששת ומאבדת תיאום. בינתיים אפשר לקרוא את <a href="#term-relaxation?from=mri">ערך המבוא על T1 ו־T2</a>.'}</p></aside>`;
     byId('pager').innerHTML='';document.title=`${activeLesson.title} | ${course.name} · ${course.number}`;linkTerms(byId('article').querySelector('.body-content'));
   }
   function showCourse(anchor){
@@ -104,21 +112,21 @@
     document.title=`סילבוס ומטלה | ${course.name} · ${course.number}`;linkTerms(byId('article').querySelector('.body-content'));
   }
   function showSlide(s){
-    setPage('reading');current=s.n;origin=readingOrigin(s);navMode='slides';readingInfo(s.group,s.lead+s.body+s.takeaway);byId('mobile-current').textContent='הרחבה לשיעור';
+    setPage('reading');current=s.n;origin=readingOrigin(s);navMode='slides';readingInfo(s.group,(s.simple||s.lead)+s.body+s.takeaway);byId('mobile-current').textContent=s===activeLesson.foundation?'פיזיקה מההתחלה':'הרחבה לשיעור';
     const terms=s.terms?s.terms.map(termById).filter(Boolean):wiki.filter(t=>t.slides.some(n=>s.sourceSlides.includes(n)));
-    byId('article').innerHTML=`<header><div class="slide-kicker">הרחבה ל${s.sourceSlides.length===1?'שקופית':'שקופיות'} <bdi>${s.sourceSlides.join(', ')}</bdi></div><h1>${esc(s.title)}</h1><p class="english-title" dir="ltr" lang="en">${esc(s.en)}</p><p class="lead">${esc(s.lead)}</p><div class="article-meta"><span class="meta-label">במצגת:</span>${s.sourceSlides.map(n=>`<a href="${slideUrl(n)}" target="_blank" rel="noopener">שקופית ${n} ↗</a>`).join('')}<span class="meta-label">מושג מסומן פותח ערך להעמקה</span></div></header><div class="body-content">${s.body}</div>${relatedHtml(terms)}<aside class="takeaway"><span class="label">הרעיון לקחת הלאה</span><p>${esc(s.takeaway)}</p></aside>${sourcesHtml(s.refs)}`;
+    byId('article').innerHTML=`<header><div class="slide-kicker">${s===activeLesson.foundation?'מסלול יסודות · ללא ידע קודם':`הרחבה ל${s.sourceSlides.length===1?'שקופית':'שקופיות'} <bdi>${s.sourceSlides.join(', ')}</bdi>`}</div><h1>${esc(s.title)}</h1><p class="english-title" dir="ltr" lang="en">${esc(s.en)}</p><p class="lead">${esc(s.simple||s.lead)}</p><div class="article-meta">${s.sourceSlides.length?'<span class="meta-label">במצגת:</span>':''}${s.sourceSlides.map(n=>`<a href="${slideUrl(n)}" target="_blank" rel="noopener">שקופית ${n} ↗</a>`).join('')}<span class="meta-label">מושג מסומן פותח ערך להעמקה</span></div></header>${prerequisitesHtml(s)}<div class="body-content">${s.body}</div>${relatedHtml(terms)}<aside class="takeaway"><span class="label">הרעיון לקחת הלאה</span><p>${esc(s.takeaway)}</p></aside>${sourcesHtml(s.refs)}`;
     const pos=readings.indexOf(s),prev=readings[pos-1],next=readings[pos+1];
     byId('pager').innerHTML=`${prev?`<a href="${readingHref(prev)}"><small>→ ההרחבה הקודמת</small><span>${esc(prev.short||prev.title)}</span></a>`:`<a href="${lessonHref()}"><small>→ חזרה לשיעור</small><span>${esc(activeLesson.title)} · כל ההרחבות</span></a>`}${next?`<a class="next" href="${readingHref(next)}"><small>ההרחבה הבאה ←</small><span>${esc(next.short||next.title)}</span></a>`:`<a class="next" href="${indexHref()}"><small>להמשיך לחקור ←</small><span>כל המושגים בשיעור</span></a>`}`;
     document.title=`${s.title} | ${course.name} · ${course.number}`;linkTerms(byId('article').querySelector('.body-content'));linkTerms(byId('article').querySelector('.lead'));
   }
   function appearances(t){
-    const links=catalogue.flatMap(l=>l.readings.filter(s=>s.terms?s.terms.includes(t.id):t.slides.some(n=>s.sourceSlides.includes(n))).map(s=>`<a href="${readingHref(s,l)}">שיעור ${l.number} · ${esc(s.short||s.title)}</a>`));
+    const links=catalogue.flatMap(l=>lessonItems(l).filter(s=>s.terms?s.terms.includes(t.id)||(s.basics||[]).includes(t.id):t.slides.some(n=>s.sourceSlides.includes(n))).map(s=>`<a href="${readingHref(s,l)}">שיעור ${l.number} · ${esc(s.short||s.title)}</a>`));
     if(t.slides.some(n=>n>=2&&n<=6))links.push('<a href="#course">סילבוס ומטלה</a>');
     return links.length?`<section class="appears-in"><h2>פוגשים את המושג בהרחבות</h2>${links.join('')}</section>`:'';
   }
   function showTerm(t){
-    setPage('term');activeTerm=t.id;navMode='terms';readingInfo(`ויקי הקורס · ${t.group}`,t.definition+t.body);byId('mobile-current').textContent='מילון המושגים';const back=backContext();
-    byId('article').innerHTML=`<header><a class="back-to-lesson" href="${back.href}">→ חזרה: ${esc(back.label)}</a><div class="slide-kicker">ערך בוויקי · ${esc(t.group)}</div><h1>${esc(t.title)}</h1><p class="english-title" dir="ltr" lang="en">${esc(t.en)}</p><p class="lead">${esc(t.definition)}</p><div class="article-meta"><a href="${indexHref()}">לכל המושגים</a><span class="meta-label">הגדרה, רקע והקשר לשיעור</span></div></header><div class="body-content">${t.body}</div>${relatedHtml(t.related.map(termById).filter(Boolean),'מושגים קשורים')}${sourcesHtml(t.refs)}${appearances(t)}`;
+    setPage('term');activeTerm=t.id;navMode='terms';readingInfo(`ויקי הקורס · ${t.group}`,(t.simple||t.definition)+t.body);byId('mobile-current').textContent='מילון המושגים';const back=backContext();
+    byId('article').innerHTML=`<header><a class="back-to-lesson" href="${back.href}">→ חזרה: ${esc(back.label)}</a><div class="slide-kicker">ערך בוויקי · ${esc(t.group)}</div><h1>${esc(t.title)}</h1><p class="english-title" dir="ltr" lang="en">${esc(t.en)}</p><p class="lead">${esc(t.simple||t.definition)}</p><div class="article-meta"><a href="${indexHref()}">לכל המושגים</a><span class="meta-label">הגדרה, רקע והקשר לשיעור</span></div></header>${prerequisitesHtml(t)}<div class="body-content">${t.simple?`<details class="course-details"><summary>ההגדרה הפיזיקלית</summary><p>${esc(t.definition)}</p></details>`:''}${t.body}</div>${relatedHtml(t.related.map(termById).filter(Boolean),'מושגים קשורים')}${sourcesHtml(t.refs)}${appearances(t)}`;
     byId('pager').innerHTML=`<a href="${back.href}"><small>→ חזרה</small><span>${esc(back.label)}</span></a><a class="next" href="${indexHref()}"><small>להמשך קריאה ←</small><span>כל המושגים</span></a>`;
     document.title=`${t.title} | ${course.name} · ${course.number}`;linkTerms(byId('article').querySelector('.body-content'),t.id);
   }
@@ -130,7 +138,7 @@
   function render(focus=false){
     const term=location.hash.match(/^#term-([a-z0-9-]+)(?:\?from=([a-z0-9-]+))?$/),slide=location.hash.match(/^#slide-(\d+)$/),courseRoute=location.hash.match(/^#course(?:-([a-z]+))?$/);
     const lesson=catalogue.find(l=>location.hash===lessonHref(l));
-    const topic=catalogue.flatMap(l=>l.readings.map(s=>({lesson:l,section:s}))).find(x=>location.hash===readingHref(x.section,x.lesson));
+    const topic=catalogue.flatMap(l=>lessonItems(l).map(s=>({lesson:l,section:s}))).find(x=>location.hash===readingHref(x.section,x.lesson));
     const indexLesson=catalogue.find(l=>location.hash===(l.id==='intro'?'#concepts':`#concepts-${l.id}`));
     let anchor=null;
     if(term&&termById(term[1])){origin=normalizedOrigin(term[2]||origin);selectLesson(originLesson(origin));showTerm(termById(term[1]));}
