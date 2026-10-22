@@ -34,6 +34,16 @@
 .physics-demo{padding:23px;background:#eef3eb;border:1px solid #c5d5c5;border-radius:8px;margin:26px 0}
 .physics-demo h3{margin:0 0 13px}
 .physics-demo label{display:block;font-size:15px}
+.feedback-card{margin:42px 0 28px;padding:26px 28px;background:#e9efea;border:1px solid #c6d5c8;border-radius:7px}
+.feedback-card h2{font-size:24px;line-height:1.45;margin:9px 0 12px;font-weight:650}
+.feedback-card p{font-size:16px;line-height:1.85;margin:10px 0}
+.feedback-card .feedback-context{font-size:13px;color:#506468;overflow-wrap:anywhere}
+.feedback-context strong{font-weight:600}
+.feedback-button{display:inline-flex;align-items:center;gap:30px;background:var(--teal);color:#fffefa;text-decoration:none;font-size:15px;font-weight:600;padding:11px 18px;margin:8px 0;border-radius:4px}
+.feedback-button:hover{background:#174e50}
+.feedback-card .feedback-note{font-size:12px;color:#5c6d64;margin:10px 0 0}
+.site-notice a{font-weight:600}
+@media(max-width:760px){.feedback-card{padding:20px;margin:30px 0 24px}.feedback-card h2{font-size:22px}.feedback-card p{font-size:15px}.feedback-button{width:100%;justify-content:space-between}}
 .physics-demo select{display:block;width:100%;font:inherit;font-size:14px;color:var(--ink);background:#fafbf6;border:1px solid #b9cbbd;border-radius:4px;padding:10px;margin:8px 0 18px}
 .relax-plot,.echo-plot{display:block;width:100%;height:auto;max-width:540px;margin:10px auto;direction:ltr;font-family:var(--font);font-size:14px}
 .echo-plot{max-width:400px}
