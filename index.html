@@ -6,14 +6,14 @@
   <meta name="description" content="הוויקי של הקורס מיפוי המוח ודימות מוחי (04553505): סילבוס ומטלה, חומרי השיעורים, מושגים והרחבות מדעיות.">
   <meta name="theme-color" content="#163f42">
   <title>מיפוי המוח ודימות מוחי · 04553505 | ויקי הקורס</title>
-  <link rel="stylesheet" href="styles.css?v=20261022-feedback">
-  <script src="content.js?v=20261022-feedback" defer></script>
-  <script src="wiki.js?v=20261022-feedback" defer></script>
-  <script src="course.js?v=20261022-feedback" defer></script>
-  <script src="lesson-two.js?v=20261022-feedback" defer></script>
-  <script src="lesson-three.js?v=20261022-feedback" defer></script>
-  <script src="wiki-app.js?v=20261022-feedback" defer></script>
-  <script src="feedback.js?v=20261022-feedback" defer></script>
+  <link rel="stylesheet" href="styles.css?v=20261022-inline-message">
+  <script src="content.js?v=20261022-inline-message" defer></script>
+  <script src="wiki.js?v=20261022-inline-message" defer></script>
+  <script src="course.js?v=20261022-inline-message" defer></script>
+  <script src="lesson-two.js?v=20261022-inline-message" defer></script>
+  <script src="lesson-three.js?v=20261022-inline-message" defer></script>
+  <script src="wiki-app.js?v=20261022-inline-message" defer></script>
+  <script src="feedback.js?v=20261022-inline-message" defer></script>
 </head>
 <body>
   <a class="skip" href="#reading">דילוג לתוכן</a>
@@ -22,7 +22,7 @@
     <div class="top-actions"><span class="course-label" lang="en" dir="ltr">BRAIN MAPPING & NEUROIMAGING</span><a class="deck-link" href="#home">דף הבית <span aria-hidden="true">↗</span></a></div>
   </header>
   <div class="mobile-controls"><button id="menu-button" aria-expanded="false" aria-controls="sidebar">תוכן העניינים <span aria-hidden="true">☰</span></button><span id="mobile-current">ויקי הקורס</span></div>
-  <aside class="site-notice" aria-label="הערה על עריכת הוויקי"><p>הוויקי הוקם ונערך באמצעות <bdi lang="en">ChatGPT</bdi>. אם מצאתם אי־דיוקים או שיש לכם הערות, <a data-feedback-link href="https://docs.google.com/forms/d/e/1FAIpQLSfjO10pPcWLmF-lXTcqnZ6cOiso35QAkZc3l3E3ezAD1_cTpQ/viewform" target="_blank" rel="noopener">שלחו לנו שאלה או הערה ↗</a>.</p></aside>
+  <aside class="site-notice" aria-label="הערה על עריכת הוויקי"><p>הוויקי הוקם ונערך באמצעות <bdi lang="en">ChatGPT</bdi>. אם מצאתם אי־דיוקים או שיש לכם הערות, <button type="button" class="feedback-jump" data-feedback-open>כתבו לנו הודעה</button>.</p></aside>
   <div class="layout">
     <aside id="sidebar" aria-label="ניווט באתר הקורס">
       <div class="sidebar-heading"><a href="#home" id="home-link">דף הבית של הקורס</a></div>
@@ -42,13 +42,25 @@
       <nav id="breadcrumbs" class="breadcrumbs" aria-label="מיקום באתר" hidden></nav>
       <div class="reading-top"><span id="chapter-label"></span><span id="reading-time"></span></div>
       <article id="article"></article>
-      <section class="feedback-card" aria-labelledby="feedback-title">
+      <section class="feedback-card" id="feedback" aria-labelledby="feedback-title">
         <span class="label">עזרו לנו לשפר את הוויקי</span>
         <h2 id="feedback-title">משהו לא ברור? חסרה לכם הרחבה?</h2>
-        <p>אפשר לשאול על ההסבר, לבקש דוגמה נוספת או להצביע על אי־דיוק. ציינו מה לא ברור ומה יעזור לכם להבין.</p>
+        <p>כתבו לנו כאן — שאלה על ההסבר, בקשה לדוגמה נוספת או משהו שכדאי לתקן.</p>
         <p class="feedback-context">הפנייה תצורף לעמוד: <strong id="feedback-page">ויקי הקורס</strong></p>
-        <a class="feedback-button" data-feedback-link href="https://docs.google.com/forms/d/e/1FAIpQLSfjO10pPcWLmF-lXTcqnZ6cOiso35QAkZc3l3E3ezAD1_cTpQ/viewform" target="_blank" rel="noopener">שליחת שאלה או הצעה <span aria-hidden="true">↗</span></a>
-        <p class="feedback-note">הטופס נפתח בלשונית חדשה. אפשר לפנות ללא שם. הפניות מיועדות לצוות הקורס ועוברות בדיקה ראשונית בעזרת ChatGPT; הן אינן מוצגות באתר.</p>
+        <form id="feedback-form" action="https://docs.google.com/forms/u/0/d/e/1FAIpQLSfjO10pPcWLmF-lXTcqnZ6cOiso35QAkZc3l3E3ezAD1_cTpQ/formResponse?embedded=true" method="post" target="feedback-receipt" accept-charset="UTF-8">
+          <input type="hidden" name="entry.1227155512" value="רעיון או הערה אחרת">
+          <input type="hidden" id="feedback-context" name="entry.818924393">
+          <label class="feedback-label" for="feedback-message">ההודעה שלכם</label>
+          <textarea id="feedback-message" name="entry.1761551171" rows="4" maxlength="5000" required placeholder="למשל: לא הבנתי למה האות דועך. אפשר להוסיף דוגמה?" aria-describedby="feedback-note"></textarea>
+          <details class="feedback-contact"><summary>רוצים שנוכל לחזור אליכם? <span>לא חובה</span></summary><label class="feedback-label" for="feedback-contact">שם או אימייל</label><input id="feedback-contact" name="entry.507509701" type="text" maxlength="200" autocomplete="off" placeholder="אפשר להשאיר גם ריק"></details>
+          <button class="feedback-button" id="feedback-send" type="submit">שליחה <span aria-hidden="true">←</span></button>
+        </form>
+        <p id="feedback-status" class="feedback-status" role="status" aria-live="polite"></p>
+        <div id="feedback-result" hidden>
+          <iframe id="feedback-receipt" name="feedback-receipt" title="אישור קבלת ההודעה" src="about:blank"></iframe>
+          <div class="feedback-result-actions"><button type="button" id="feedback-new">כתיבת הודעה נוספת</button><button type="button" id="feedback-edit">חזרה להודעה שכתבתי</button></div>
+        </div>
+        <p id="feedback-note" class="feedback-note">אפשר לשלוח ללא שם. ההודעות מגיעות לצוות הקורס ועוברות בדיקה ראשונית בעזרת ChatGPT; הן אינן מוצגות באתר.</p>
       </section>
       <nav class="pager" id="pager" aria-label="מעבר בין עמודים והרחבות"></nav>
       <footer class="page-footer">הוויקי של הקורס מיפוי המוח ודימות מוחי · <bdi>04553505</bdi><br><span>חומרי לימוד, מושגים והרחבות לפי שיעור · מקורות מופיעים בכל ערך</span></footer>
