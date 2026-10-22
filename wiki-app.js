@@ -31,6 +31,85 @@
     return section?{href:readingHref(section),label:section.short||section.title}:{href:lessonHref(),label:activeLesson.title};
   }
   function sourcesHtml(refs){return refs?.length?`<section class="sources"><h2>מקורות וקריאה נוספת</h2><ul>${refs.map(key=>{const r=sources[key];return `<li><a href="${r.url}" target="_blank" rel="noopener" dir="auto">${esc(r.title)} ↗</a>${r.note?`<span class="source-description">${esc(r.note)}</span>`:''}</li>`;}).join('')}</ul></section>`:'';}
+  let globalSearchIndex=null;
+  const searchNormalize=value=>String(value||'').normalize('NFKC').toLocaleLowerCase('he').replace(/[\u0591-\u05C7]/g,'').replace(/[^\p{L}\p{N}*]+/gu,' ').trim();
+  function searchText(html){
+    const root=document.createElement('div');
+    root.innerHTML=String(html||'').replace(/></g,'> <');
+    root.querySelectorAll('script,style,svg').forEach(node=>node.remove());
+    return root.textContent.replace(/\s+/g,' ').trim();
+  }
+  function buildSearchIndex(){
+    const docs=[];
+    const references=item=>(item.refs||[]).map(key=>sources[key]).filter(Boolean).map(ref=>ref.title+' '+(ref.note||'')).join(' ');
+    const add=entry=>docs.push({...entry,titleKey:searchNormalize(entry.title),aliasKey:searchNormalize(entry.aliases),aliasValues:(Array.isArray(entry.aliases)?entry.aliases:[entry.aliases]).map(searchNormalize),summaryKey:searchNormalize(entry.summary),textKey:searchNormalize([entry.title,entry.aliases,entry.summary,entry.body].join(' '))});
+    catalogue.forEach(lesson=>{
+      const lessonLabel=`שיעור ${lesson.number} · ${lesson.title}`;
+      add({title:lesson.title,href:lessonHref(lesson),kind:`שיעור ${lesson.number}`,aliases:lesson.subtitle,summary:lesson.description,body:[lesson.lead,lesson.questions].join(' ')});
+      lessonItems(lesson).forEach(item=>add({title:item.title,href:readingHref(item,lesson),kind:(item===lesson.foundation?'מסלול יסודות':'הרחבה')+' · '+lessonLabel,aliases:[item.short,item.en],summary:item.simple||item.lead,body:searchText([item.lead,item.body,item.takeaway,references(item)].join(' '))}));
+    });
+    allWiki.forEach(term=>{
+      const lessons=catalogue.filter(lesson=>lesson.termIds.includes(term.id));
+      const context=lessons.length===1?`שיעור ${lessons[0].number} · ${lessons[0].title}`:'שיעורים '+lessons.map(lesson=>lesson.number).join(', ');
+      add({title:term.title,href:`#term-${term.id}?from=${lessons[0]?.id||'intro'}`,kind:'מושג · '+context,aliases:[term.en,...term.aliases],summary:term.simple||term.definition,body:searchText([term.definition,term.body,references(term)].join(' '))});
+    });
+    // Reuse the actual syllabus markup so dates, grading rules and future edits are searchable.
+    const courseRoot=document.createElement('div');courseRoot.innerHTML=courseHtml();
+    course.sections.forEach(section=>{
+      const body=searchText(courseRoot.querySelector('#course-'+section.id)?.innerHTML||'');
+      add({title:section.label,href:'#course-'+section.id,kind:'מידע על הקורס',aliases:section.search,summary:body,body});
+    });
+    return docs;
+  }
+  function globalSearchHtml(){
+    return `<h2><label for="global-search">חיפוש בכל הוויקי</label></h2><p class="global-search-hint" id="global-search-hint">מושגים, הסברים וחומרי הקורס — בעברית ובאנגלית.</p><form class="global-search-form" role="search" aria-label="חיפוש בכל הוויקי"><input id="global-search" type="search" placeholder="למשל רלקסציה, BOLD או שכבות הקורטקס" dir="auto" autocomplete="off" maxlength="120" aria-describedby="global-search-hint" aria-controls="global-search-results"><button type="submit">חיפוש <span aria-hidden="true">←</span></button></form><div class="global-search-tools"><span>אפשר להתחיל עם</span><button type="button" data-search-example="T1"><bdi>T1</bdi></button><button type="button" data-search-example="פרומגנטיזם">פרומגנטיזם</button><button type="button" data-search-example="שכבות הקורטקס">שכבות הקורטקס</button><button type="button" class="global-search-clear" hidden>ניקוי החיפוש</button></div><p class="global-search-status" role="status" aria-live="polite"></p><div id="global-search-results" hidden><ul class="global-search-list"></ul><button type="button" class="global-search-more" hidden>עוד תוצאות</button></div>`;
+  }
+  function mountGlobalSearch(root){
+    root.innerHTML=globalSearchHtml();
+    const input=root.querySelector('input'),form=root.querySelector('form'),status=root.querySelector('[role="status"]'),results=root.querySelector('#global-search-results'),list=root.querySelector('ul'),clear=root.querySelector('.global-search-clear'),more=root.querySelector('.global-search-more');
+    let matches=[],shown=8,timer;
+    input.value=new URLSearchParams(location.hash.split('?')[1]||'').get('q')?.slice(0,120)||'';
+    function excerpt(entry){
+      const tokens=searchNormalize(input.value).split(' ').filter(Boolean);
+      const summary=entry.summary||'',text=tokens.every(token=>searchNormalize(summary).includes(token))?summary:entry.body||summary;
+      const folded=text.normalize('NFKC').toLocaleLowerCase('he');
+      const position=folded.indexOf(searchNormalize(input.value));
+      const hit=position>=0?position:Math.max(0,...tokens.map(token=>folded.indexOf(token)).filter(index=>index>=0).slice(0,1));
+      let start=Math.max(0,hit-45);
+      if(start){const boundary=text.indexOf(' ',start);if(boundary>=0&&boundary<start+20)start=boundary+1;}
+      const excerpt=text.slice(start,start+175);
+      return (start?'…':'')+(start+175<text.length?excerpt.replace(/\s+\S*$/,'')+'…':excerpt);
+    }
+    function paint(){
+      list.innerHTML=matches.slice(0,shown).map(entry=>`<li><a href="${esc(entry.href)}"><span class="global-result-kind">${esc(entry.kind)}</span><strong>${esc(entry.title)} <span aria-hidden="true">←</span></strong><p>${esc(excerpt(entry))}</p></a></li>`).join('');
+      more.hidden=matches.length<=shown;
+      more.textContent=`עוד תוצאות (${Math.max(0,matches.length-shown)})`;
+    }
+    function run(updateUrl=true){
+      clearTimeout(timer);
+      if(!root.isConnected)return;
+      const query=input.value.trim(),key=searchNormalize(query),tokens=[...new Set(key.split(' ').filter(Boolean))];
+      if(updateUrl){const params=new URLSearchParams();if(query)params.set('q',query);history.replaceState(null,'','#home'+(query?'?'+params.toString():''));}
+      clear.hidden=!input.value;
+      shown=8;matches=[];list.replaceChildren();more.hidden=true;
+      results.hidden=key.length<2;
+      if(!key){status.textContent='';return;}
+      if(key.length<2){status.textContent='הקלידו לפחות שני תווים לחיפוש.';return;}
+      globalSearchIndex??=buildSearchIndex();
+      matches=globalSearchIndex.filter(entry=>tokens.every(token=>entry.textKey.includes(token))).map(entry=>{
+        const score=(entry.titleKey===key?1000:0)+(entry.aliasValues.includes(key)?900:0)+(entry.titleKey.includes(key)?300:0)+(entry.aliasKey.includes(key)?180:0)+tokens.reduce((sum,token)=>sum+(entry.titleKey.includes(token)?35:entry.aliasKey.includes(token)?20:entry.summaryKey.includes(token)?8:1),0);
+        return {...entry,score};
+      }).sort((a,b)=>b.score-a.score||a.title.localeCompare(b.title,'he'));
+      status.textContent=matches.length===0?`לא נמצאו תוצאות עבור „${query}”. נסו מונח קצר יותר או את שמו באנגלית.`:matches.length===1?'נמצאה תוצאה אחת':`נמצאו ${matches.length} תוצאות`;
+      paint();
+    }
+    input.addEventListener('input',()=>{clearTimeout(timer);timer=setTimeout(run,120);});
+    form.addEventListener('submit',event=>{event.preventDefault();run();list.querySelector('a')?.focus();});
+    clear.addEventListener('click',()=>{input.value='';run();input.focus();});
+    root.querySelectorAll('[data-search-example]').forEach(button=>button.addEventListener('click',()=>{input.value=button.dataset.searchExample;run();input.focus();}));
+    more.addEventListener('click',()=>{const next=shown;shown+=8;paint();list.querySelectorAll('a')[next]?.focus();});
+    run(false);
+  }
   function relatedHtml(terms,label='מושגים להעמקה'){return terms.length?`<section class="term-links"><h2>${label}</h2><div>${terms.map(t=>`<a href="${termHref(t.id)}" title="${esc(t.definition)}">${esc(t.title)} <span aria-hidden="true">↗</span></a>`).join('')}</div></section>`:'';}
   function prerequisitesHtml(item){
     const terms=(item.basics||[]).map(termById).filter(Boolean);
@@ -92,6 +171,7 @@
   function showHome(){
     setPage('home');origin='intro';byId('chapter-label').textContent='האתר המלווה לקורס';byId('reading-time').textContent='ויקי הקורס';byId('mobile-current').textContent='דף הבית';
     byId('article').innerHTML=`<header class="course-home-header"><div class="slide-kicker">קורס <bdi>${course.number}</bdi></div><h1>${esc(course.name)}<span class="title-detail">ויקי הקורס</span></h1><p class="lead">חומרי הקורס במקום אחד: סילבוס והנחיות המטלה, ולצדם הרחבות, מושגים ורקע מדעי לפי שיעור.</p></header><nav class="home-paths course-home-paths" aria-label="תכני הקורס"><a href="#course"><small>מידע על הקורס</small><strong>סילבוס ומטלה</strong><p>נושאי הלימוד, לוח המפגשים, דרכי ההערכה והנחיות אתגר מיפוי המוח.</p><span class="card-cta">לסילבוס ולמטלה <span aria-hidden="true">←</span></span></a>${catalogue.map(l=>`<a href="${lessonHref(l)}"><small>שיעור ${l.number}</small><strong>${esc(l.title)}</strong><p>${esc(l.description)}</p><span class="card-meta">${l.readings.length} הרחבות · ${l.termIds.length} מושגים · ${l.draft?'מצגת בעריכה':'מצגת השיעור'}</span><span class="card-cta">לחומרי השיעור <span aria-hidden="true">←</span></span></a>`).join('')}</nav>`;
+    const searchPanel=document.createElement('section');searchPanel.className='global-search-panel';searchPanel.setAttribute('aria-label','חיפוש בכל הוויקי');byId('article').querySelector('.course-home-header').after(searchPanel);mountGlobalSearch(searchPanel);
     byId('pager').innerHTML='';document.title=`${course.name} · ${course.number} | ויקי הקורס`;
   }
   function showIntro(){
@@ -99,15 +179,18 @@
     byId('article').innerHTML=`<header><div class="slide-kicker">לקרוא מעבר לשקופית · שיעור ${activeLesson.number}</div><h1>${esc(activeLesson.title)}<span class="title-detail">${esc(activeLesson.subtitle)}</span></h1><p class="lead">${esc(activeLesson.lead)}</p></header>${activeLesson.draft?`<p class="lesson-status">המצגת עדיין בעריכה · לפי הגרסה מ־${esc(activeLesson.reviewed||'')} · ${activeLesson.slides.length} שקופיות. התוכן ומספור השקופיות עשויים להשתנות.</p>`:activeLesson.updated?`<p class="lesson-status">עודכן לפי מצגת השיעור הסופית · ${esc(activeLesson.updated)} · ${activeLesson.slides.length} שקופיות</p>`:''}<nav class="lesson-tools" aria-label="כלים לשיעור"><a href="${activeLesson.deck}" target="_blank" rel="noopener">מצגת השיעור <span aria-hidden="true">↗</span></a><a href="${indexHref()}">מילון המושגים <small>${wiki.length} ערכים</small></a></nav>${foundationHtml()}<div class="body-content"><h2>מתחילים בשאלה שמעניינת אתכם</h2><p>${esc(activeLesson.questions||(activeLesson.id==='intro'?'מהן שכבות הקורטקס, מה מודד BOLD, ואיך אפשר ללמוד על תפקוד מפגיעה מוחית?':'מהו ספין, למה יש שתי רמות אנרגיה, ואיך פולס רדיו יוצר אות?'))} מושגים מסומנים בטקסט פותחים ערכי הסבר. מכל ערך אפשר לחזור להרחבה שממנה יצאתם.</p><h2>הרחבות נבחרות לשיעור</h2><p>הנושאים מסודרים לפי מהלך השיעור. שקופיות העוסקות באותו רעיון מופיעות יחד בהרחבה אחת, עם קישורים למקומן במצגת.</p></div><div class="reading-directory">${groups(readings).map(g=>`<section><h2>${esc(g)}</h2>${readings.filter(s=>s.group===g).map(s=>`<a href="${readingHref(s)}"><span>${esc(s.short||s.title)}</span><small>${s.sourceSlides.length===1?'שקופית':'שקופיות'} <bdi>${s.sourceSlides.join(', ')}</bdi></small></a>`).join('')}</section>`).join('')}</div><aside class="takeaway"><span class="label">ממשיכים ללמוד</span><p>${activeLesson.continueHtml||(activeLesson.id==='intro'?'<a href="#lesson-mri">לשיעור 02: מגנטיות גרעינית והבסיס הפיזיקלי של MRI ←</a>':'בהמשך נעמיק ברלקסציה: כיצד המגנטיזציה מתאוששת ומאבדת תיאום. בינתיים אפשר לקרוא את <a href="#term-relaxation?from=mri">ערך המבוא על T1 ו־T2</a>.')}</p></aside>`;
     byId('pager').innerHTML='';document.title=`${activeLesson.title} | ${course.name} · ${course.number}`;linkTerms(byId('article').querySelector('.body-content'));
   }
-  function showCourse(anchor){
-    selectLesson('intro');setPage('course');origin='course';navMode='slides';byId('chapter-label').textContent='מידע על הקורס';byId('reading-time').textContent='לפי המצגת המעודכנת';byId('mobile-current').textContent='סילבוס ומטלה';
-    byId('article').innerHTML=`<header><div class="slide-kicker"><span>${esc(course.name)} · קורס <bdi>${course.number}</bdi></span></div><h1>${course.title}</h1><p class="english-title" lang="en" dir="ltr">${course.en}</p><p class="lead">${course.lead}</p><nav class="course-jumps" aria-label="חלקי עמוד הקורס">${course.sections.map(s=>`<a href="#course-${s.id}">${s.label}</a>`).join('')}</nav></header>
+  function courseHtml(anchor=null){
+    return `<header><div class="slide-kicker"><span>${esc(course.name)} · קורס <bdi>${course.number}</bdi></span></div><h1>${course.title}</h1><p class="english-title" lang="en" dir="ltr">${course.en}</p><p class="lead">${course.lead}</p><nav class="course-jumps" aria-label="חלקי עמוד הקורס">${course.sections.map(s=>`<a href="#course-${s.id}">${s.label}</a>`).join('')}</nav></header>
     <div class="body-content course-body">
     <section id="course-syllabus"><h2>מה נלמד בקורס?</h2><div class="course-blocks">${course.blocks.map(b=>`<div><span class="block-number">${b.n}</span><div><h3>${b.title}</h3><small dir="auto">${b.dates}</small><p>${b.text}</p></div></div>`).join('')}</div><p>לאורך הסמסטר מתקיים אתגר מיפוי המוח: פרויקט קבוצתי שבו מציעים ניסוי fMRI, מכינים הצעות נבחרות לסריקה ומפרשים את התוצאות.</p><details class="course-details"><summary>צוות הקורס ופרטי קשר</summary><div class="team-list">${course.team.map(([name,email])=>`<div><strong>${name}</strong><a href="mailto:${email}" dir="ltr">${email}</a></div>`).join('')}</div></details><p class="course-source"><a href="${slideUrl(2)}" target="_blank" rel="noopener">הסילבוס במצגת ↗</a></p></section>
     <section id="course-assignment"><div class="section-heading"><h2>המטלה: אתגר מיפוי המוח</h2><span class="weight-tag">20% מהציון</span></div><p>מרעיון לניסוי, ומנתונים להסבר: עובדים בקבוצות של שישה, ומלווים את הניסוי לאורך הסמסטר.</p><ol class="assignment-steps">${course.steps.map((s,i)=>`<li><span class="step-number">${i+1}</span><div><h3>${s.title}</h3><p>${s.text}</p><span class="points-tag ${s.bonus?'bonus':''}">${s.points}</span></div></li>`).join('')}</ol><aside class="takeaway"><span class="label">איך מצטברות הנקודות?</span><p>ארבעת רכיבי הבסיס — הגשת ההצעה, הצגה, נוכחות בסריקה והגשת ניתוח — מזכים ב־5 נקודות כל אחד. כל נקודה מעל 20 בחלק האתגר נחשבת לבונוס בציון הסופי. ללא השתתפות באתגר, הציון המרבי בקורס הוא 80.</p></aside><h3>מועדי האתגר</h3><div class="milestone-list">${course.milestones.map(([date,text])=>`<div><bdi>${date}</bdi><span>${text}</span></div>`).join('')}</div><p class="course-source"><a href="${slideUrl(5)}" target="_blank" rel="noopener">הנחיות האתגר במצגת ↗</a></p></section>
     <section id="course-grading"><h2>הערכה וציונים</h2><div class="grade-split"><div><strong>80%</strong><span>מטלות הבחינה</span><small>מועד א׳ או מועד ב׳</small></div><div><strong>20%</strong><span>אתגר מיפוי המוח</span><small>ובתוספת הבונוסים המפורטים למעלה</small></div></div><h3>מועד א׳</h3><p>שמונה נושאים, ומטלה אחת לאחר כל נושא. כל מטלה פתוחה לארבעה ימים, וזמן הביצוע המשוער הוא כעשר דקות. לאחר ארבעה ימים מתפרסמות התשובות. שמונת הציונים מרכיבים את ציון מועד א׳.</p><h3>מועד ב׳</h3><p>בתאריך מועד ב׳ נפתחות שמונה מטלות חדשות, אחת לכל נושא. יש לענות על כל מטלה בתוך ארבע שעות.</p><h3>השלמות, חזרה והתאמות</h3><ul><li>מטלה שלא בוצעה במועד א׳ אפשר להשלים במועד ב׳.</li><li>אפשר לחזור במועד ב׳ על מטלה כדי לשפר את הציון. אם עונים בשני המועדים, <strong>הציון האחרון קובע</strong>.</li><li>לזכאים להתאמות משמעותיות בהחלטת המזכירות, למשל בעקבות מילואים, ייחשבו ששת הציונים הטובים מתוך שמונה.</li><li>לפי ההנחיות במצגת, אין מועדים נוספים, חריגים או הארכות.</li></ul><p class="course-source"><a href="${slideUrl(4)}" target="_blank" rel="noopener">כללי ההערכה במצגת ↗</a></p></section>
     <section id="course-schedule"><h2>לוח המפגשים</h2><p>המועדים והתכנים להלן מופיעים בלוח הקורס במצגת.</p><details class="course-details" ${anchor==='schedule'?'open':''}><summary>לוח המפגשים המלא</summary><div class="table-wrap"><table class="schedule-table"><thead><tr><th scope="col">תאריך</th><th scope="col">מרצה</th><th scope="col">נושא המפגש</th></tr></thead><tbody>${course.schedule.map(([date,teacher,topic])=>`<tr><td><bdi>${date}</bdi></td><td>${teacher}</td><td>${topic}</td></tr>`).join('')}</tbody></table></div></details><p class="course-source"><a href="${slideUrl(3)}" target="_blank" rel="noopener">לוח המפגשים במצגת ↗</a></p></section>
     <section id="course-reading"><h2>קריאה משלימה</h2>${course.readingHtml}<p class="course-source"><a href="${slideUrl(6)}" target="_blank" rel="noopener">רשימת הקריאה במצגת ↗</a></p></section></div>`;
+  }
+  function showCourse(anchor){
+    selectLesson('intro');setPage('course');origin='course';navMode='slides';byId('chapter-label').textContent='מידע על הקורס';byId('reading-time').textContent='לפי המצגת המעודכנת';byId('mobile-current').textContent='סילבוס ומטלה';
+    byId('article').innerHTML=courseHtml(anchor);
     byId('pager').innerHTML='<a href="#home"><small>→ חזרה לדף הבית</small><span>ויקי הקורס</span></a><a class="next" href="#lesson-intro"><small>לחומרי השיעור ←</small><span>שיעור מבוא</span></a>';
     document.title=`סילבוס ומטלה | ${course.name} · ${course.number}`;linkTerms(byId('article').querySelector('.body-content'));
   }
