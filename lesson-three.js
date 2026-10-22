@@ -210,7 +210,7 @@
     '<h2>ארבע שאלות, ארבע נקודות מבט</h2><div class="table-wrap"><table><thead><tr><th>השאלה</th><th>המושג המרכזי</th></tr></thead><tbody><tr><td>אילו תדרים מרכיבים את האות?</td><td>התמרת פורייה וספקטרום</td></tr><tr><td>איך Mz חוזר לשיווי משקל?</td><td>T1 והתאוששות אחרי היפוך</td></tr><tr><td>למה האות הרוחבי דועך?</td><td>T2 ו־T2*</td></tr><tr><td>איזה פיזור ניתן למקד מחדש?</td><td>אקו ספין</td></tr></tbody></table></div><h2>בדיקה עצמית</h2><details class="course-details"><summary>האם אחרי T1 אחד ההתאוששות הסתיימה?</summary><p>לא. במודל מעריכי עוברים כ־63% מהדרך מן המצב ההתחלתי לשיווי משקל.</p></details><details class="course-details"><summary>האם פולס 180° הופך את כיוון הפרצסיה?</summary><p>לא ברצף האקו המתואר כאן. הוא משקף את דפוס הפאזות סביב ציר הפולס, בעוד שהפרשי התדירות המקומיים ממשיכים לפעול.</p></details><details class="course-details"><summary>פיק גבוה פי שניים אומר ריכוז גבוה פי שניים?</summary><p>לא בהכרח. צריך לבדוק שטח, רוחב, חפיפה, רלקסציה, כיול ותנאי רכישה.</p></details><h2>הדרך אל ניגודיות</h2><p>בחירת התזמונים מאפשרת להפוך הבדלים בתכונות הרקמה להבדלים באות. זו התשתית להבנת רצפים וניגודיות בהמשך הקורס. כשקוראים תמונה, מחברים בין הפיזיקה, תנאי הניסוי וההקשר הביולוגי.</p>');
 
   window.COURSE_LESSONS.push({
-    id:'relax',number:'03',title:'רלקסציה, ספקטרוסקופיה ואקו',subtitle:'מה קורה למגנטיזציה אחרי העירור?',
+    id:'relax',number:'03',title:'רלקסציה',subtitle:'מה קורה למגנטיזציה אחרי העירור?',
     description:'מהאות בזמן לספקטרום כימי, דרך התאוששות T1 ודעיכת T2 ו־T2*, ועד אקו ספין ומיפוי כמותי.',
     lead:'למה האות דועך, מה אפשר ללמוד מהתדרים שלו, ואיך פולס נוסף יכול להחזיר חלק מן התיאום? הרחבות וערכי מושגים שאפשר לקרוא גם בלי רקע קודם בפיזיקה.',
     questions:'מהו קבוע זמן, איך קוראים ספקטרום, ומה ההבדל בין התאוששות T1 למיקוד מחדש באקו?',
@@ -220,7 +220,7 @@
     termIds:[...new Set([...terms.map(t=>t.id),...readings.flatMap(r=>r.terms)])],
     continueHtml:'אפשר לחזור אל <a href="#lesson-mri">שיעור 02: מגנטיות גרעינית</a>, או להיעזר ב<a href="#physics-basics">מסלול פיזיקה מההתחלה</a>. נוסיף כאן את השיעורים הבאים עם הכנתם.'
   });
-  window.COURSE_LESSONS.find(l=>l.id==='mri').continueHtml='<a href="#lesson-relax">לשיעור 03: רלקסציה, ספקטרוסקופיה ואקו ←</a>';
+  window.COURSE_LESSONS.find(l=>l.id==='mri').continueHtml='<a href="#lesson-relax">לשיעור 03: רלקסציה ←</a>';
   // Each route mounts only its own controls; event handlers leave with the article.
   window.mountLessonThreeDemos=()=>{
     const recovery=document.querySelector('[data-demo="t1-recovery"]');
