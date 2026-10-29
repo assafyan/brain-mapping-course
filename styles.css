@@ -97,6 +97,19 @@
 .physics-demo .demo-note{font-size:12px;color:#5c6d64;line-height:1.8;margin:12px 0 0}
 .vector-demo{display:block;width:100%;max-width:340px;margin:auto;direction:ltr}
 .vector-demo text{font-family:var(--font);font-size:17px}
+.lesson-model-plot{display:block;width:100%;max-width:520px;height:auto;margin:12px auto;direction:ltr;font-family:var(--font)}
+.physics-demo output{display:inline-block;direction:ltr;unicode-bidi:isolate;font-weight:600;margin-inline-start:5px}
+.signal-bars{margin:22px 0}
+.signal-bars>div{display:grid;grid-template-columns:75px minmax(0,1fr) 55px;gap:12px;align-items:center;margin:13px 0;font-size:14px}
+.signal-track{height:27px;background:#d9e3d7;border-radius:4px;overflow:hidden;direction:ltr}
+.signal-track span{display:block;height:100%;background:#27605d;border-radius:4px}
+#contrast-bar-b{background:#9b4d32}
+.signal-bars bdi{text-align:center;font-variant-numeric:tabular-nums}
+.modulation-blocks{display:grid;gap:20px;margin:20px 0;font-size:14px}
+.modulation-track{height:45px;background:#fffdf5;border:1px solid #c7d7c5;border-radius:4px;margin:8px 0;overflow:hidden}
+.modulation-track span{display:block;height:100%;background:#27605d}
+.modulation-blocks small{color:#506468}
+@media(max-width:480px){.signal-bars>div{grid-template-columns:60px minmax(0,1fr) 45px;gap:7px;font-size:12px}.demo-readout{gap:10px;flex-wrap:wrap}}
 @media(max-width:760px){.physics-demo{padding:17px}.demo-readout bdi{font-size:21px}.demo-readout small{font-size:11px}.physics-equation{font-size:16px}.lesson-status{font-size:12px}}
 .course-home-paths>a{padding:27px;min-height:270px;gap:9px;transition:background .15s,border-color .15s}
 .course-home-paths>a:hover{border-color:#9fbba9}
