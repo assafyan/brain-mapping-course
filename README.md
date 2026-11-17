@@ -41,3 +41,6 @@ GitHub Pages מפרסם את התיקייה הראשית של ענף `main`.
 בעת הוספת שיעור חדש, מוסיפים את נתוניו ל־`COURSE_LESSONS` וטוענים את קובץ התוכן לפני `wiki-app.js`. דף הבית, ניווט הקורס, דפי השיעורים ומילוני המושגים נוצרים מהרשימה. קישורי שיעור המבוא הקיימים נשמרים.
 
 Lesson 5 includes eight illustration panels extracted from C27_5 (17 November 2026), with Hebrew captions, accessible descriptions, full-size image links, source-slide links, and the source credits shown in the deck.
+
+
+עדכון איורים, 17.11.2026: נוספו 42 איורים ממצגות 1–4 ואיור הקומיסורות ממצגת 5, עם הסברים בעברית, טקסט חלופי, הגדלה וקישורים לשקופיות. הנתונים נמצאים ב־lecture-figures.js; קובצי התמונה lesson1–lesson5-figure-XX.jpg נשמרים בשורש האתר. שמונת האיורים הקודמים של שיעור 5 נותרו ב־lesson-five.js.
