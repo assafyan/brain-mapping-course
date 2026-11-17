@@ -610,6 +610,124 @@
     ["p-value"],
     "ממקמים, מתאימים, מודדים ומפרשים — ובכל שלב בודקים אם הראיות תומכות בטענה.",
     "<h2>למה מדגמים גדולים מופיעים כאן?</h2><p>Marek ועמיתיו הראו במחקרי קשר רוחביים בין מדדי מוח להתנהגות כיצד אפקטים קטנים עלולים להיות לא יציבים במדגמים קטנים, ומדוע לעיתים נדרשים אלפי אנשים לשחזור. זהו שיעור על עוצמת האפקט ועל תכנון, לא מספר סף אחיד לכל מחקר MRI.</p><h2>מה עוד צריך חוץ מ־N?</h2><p>מדידה אמינה, בקרת איכות, טיפול בהשוואות מרובות, בחירת אזורים בלי מעגליות, ותיקוף בנתונים עצמאיים. מדגם גדול מאוד אינו מציל אוטומטית הגדרה מוטעית או הטיה שיטתית.</p><h2>ארבע שאלות לקחת מכל מאמר</h2><ol><li>איפה וכיצד הוגדר האזור?</li><li>איך הותאמו המוחות ומה עבר בקרת איכות?</li><li>מה המדד, מה היחידות וכמה גדול ההבדל?</li><li>מה שוחזר, ומה עדיין אינו מאפשר הסקה סיבתית או אישית?</li></ol><p>המסלול הזה מחבר את האטלסים, הנרמול והמדידות לתוצאה המדעית, במקום להתייחס למפה הצבעונית כאל סוף ההסבר.</p>");
+
+  // Selected illustration panels from the course deck; labels and proportions retained.
+function insertLectureFigures(figures, readings, terms) {
+  const escape=value=>String(value).replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  for (const figure of figures) {
+    const target=(figure.kind==='term'?terms:readings).find(item=>item.id===figure.target);
+    const markup=`<figure class="lecture-figure"><a class="lecture-figure-image" href="${figure.file}" target="_blank" rel="noopener" aria-label="${escape(figure.title)} — פתיחה בגודל מלא בלשונית חדשה"><img src="${figure.file}" alt="${escape(figure.alt)}" width="${figure.width}" height="${figure.height}" loading="lazy" decoding="async"></a><figcaption><strong>${escape(figure.title)}</strong><span>${escape(figure.caption)}</span><span class="lecture-figure-links"><a href="${figure.file}" target="_blank" rel="noopener">הגדלת האיור ↗</a> · <a href="${figure.source}" target="_blank" rel="noopener">שקופית ${figure.slide} במצגת ↗</a></span><small>${escape(figure.credit)}</small></figcaption></figure>`;
+    target.body=target.body.replace('</p>','</p>'+markup);
+  }
+}
+  insertLectureFigures([
+  {
+    "target": "anatomy",
+    "slide": 5,
+    "title": "מזהים רקמות בתמונה",
+    "alt": "חתך MRI עם סימון חומר אפור, חומר לבן, נוזל מוחי וגרעינים עמוקים; מימין הגדלה של גבול הקורטקס.",
+    "caption": "הצבעים והחצים משמאל מסמנים מבנים על גבי תמונת MRI. מימין רואים מקרוב את ההבדלים בבהירות שעוזרים לזהות גבולות בין רקמות.",
+    "credit": "מתוך מצגת הקורס.",
+    "file": "lesson5-figure-05.jpg",
+    "width": 1599,
+    "height": 537,
+    "bytes": 115007,
+    "source": "https://docs.google.com/presentation/d/1sUX442wVnKPf2qSHckKlV8PnQSQvLdQndmqx_aPn9jk/edit#slide=id.p5"
+  },
+  {
+    "target": "coordinates",
+    "slide": 11,
+    "title": "שלושה צירים, כתובת אחת",
+    "alt": "שלושת צירי המוח: x לימין ולשמאל, y לפנים ולאחור, z למעלה ולמטה; נקודת AC מסומנת כמוצא.",
+    "caption": "במוסכמה המוצגת כאן, x מתאר ימין–שמאל, y קדמי–אחורי ו־z עליון–תחתון. שלושת המספרים יחד מגדירים מיקום במילימטרים; צריך לציין גם את מרחב הייחוס.",
+    "credit": "מתוך מצגת הקורס.",
+    "file": "lesson5-figure-11.jpg",
+    "width": 1599,
+    "height": 517,
+    "bytes": 80543,
+    "source": "https://docs.google.com/presentation/d/1sUX442wVnKPf2qSHckKlV8PnQSQvLdQndmqx_aPn9jk/edit#slide=id.p9"
+  },
+  {
+    "target": "networks",
+    "slide": 28,
+    "title": "רשתות וחלקות הן רמות תיאור שונות",
+    "alt": "מפות Yeo המחלקות את הקורטקס לשבע או לשבע־עשרה רשתות, לצד חלוקה מפורטת יותר לחלקות Schaefer.",
+    "caption": "אותו צבע מסמן שיוך לרשת, שיכולה לכלול אזורים רחוקים. בחלוקה לחלקות אפשר לפרט יחידות קטנות יותר בתוך הרשתות. מספר הרשתות ומספר החלקות אינם אותו מדד.",
+    "credit": "מתוך מצגת הקורס; מפות Yeo ועמיתיו (2011) ו־Schaefer ועמיתיו (2018).",
+    "file": "lesson5-figure-28.jpg",
+    "width": 1599,
+    "height": 517,
+    "bytes": 158025,
+    "source": "https://docs.google.com/presentation/d/1sUX442wVnKPf2qSHckKlV8PnQSQvLdQndmqx_aPn9jk/edit#slide=id.p25"
+  },
+  {
+    "target": "registration",
+    "slide": 38,
+    "title": "מה משתנה כשמתאימים מוחות?",
+    "alt": "שלוש שורות של חמישה מוחות: תמונות מקוריות, אחרי הזזה וסיבוב, ואחרי נרמול לתבנית.",
+    "caption": "קראו מלמעלה למטה: תמונות המקור; יישור קשיח באמצעות הזזה וסיבוב; ולבסוף נרמול המאפשר גם שינויי צורה מקומיים. ההתאמה מקרבת מבנים לאותם מיקומים בתמונה — היא אינה משנה את המוח עצמו.",
+    "credit": "מתוך מצגת הקורס.",
+    "file": "lesson5-figure-38.jpg",
+    "width": 1599,
+    "height": 537,
+    "bytes": 134796,
+    "source": "https://docs.google.com/presentation/d/1sUX442wVnKPf2qSHckKlV8PnQSQvLdQndmqx_aPn9jk/edit#slide=id.p31"
+  },
+  {
+    "target": "segmentation",
+    "slide": 43,
+    "title": "מהתמונה אל סוגי הרקמה",
+    "alt": "תמונת T1, בידוד המוח ומפות ייחוס לחומר אפור, חומר לבן ונוזל מוחי.",
+    "caption": "משמאל: הסריקה ובידוד המוח מן הרקמות שמסביבו. מימין: מפות ייחוס של חומר אפור, חומר לבן ו־CSF. המפות מסייעות לסיווג, אך צריך לבדוק שהתוצאה מתאימה לאנטומיה של האדם שנסרק.",
+    "credit": "מתוך מצגת הקורס.",
+    "file": "lesson5-figure-43.jpg",
+    "width": 1600,
+    "height": 499,
+    "bytes": 129325,
+    "source": "https://docs.google.com/presentation/d/1sUX442wVnKPf2qSHckKlV8PnQSQvLdQndmqx_aPn9jk/edit#slide=id.p36"
+  },
+  {
+    "target": "vbm-workflow",
+    "slide": 47,
+    "title": "רואים את רצף העיבוד",
+    "alt": "רצף משמאל לימין: תמונת T1, נרמול, הפרדת חומר אפור, תיקון כמות הרקמה והחלקה.",
+    "caption": "קראו משמאל לימין: מתאימים לתבנית, מפרידים רקמות, מתקנים את ערכי החומר האפור לשימור הכמות ומחליקים. כל תמונה עונה על שאלה אחרת; הסדר המוצג הוא ההמחשה שבמצגת, ובתוכנות מסוימות שלבים מחושבים יחד.",
+    "credit": "מתוך מצגת הקורס; ההסבר נשען על Ashburner & Friston (2005) ו־Good ועמיתיו (2001).",
+    "file": "lesson5-figure-47.jpg",
+    "width": 1600,
+    "height": 499,
+    "bytes": 137076,
+    "source": "https://docs.google.com/presentation/d/1sUX442wVnKPf2qSHckKlV8PnQSQvLdQndmqx_aPn9jk/edit#slide=id.c5_vbm_full_pipeline"
+  },
+  {
+    "target": "surfaces",
+    "slide": 56,
+    "title": "העובי נמצא בין שני גבולות",
+    "alt": "בחתך MRI הגבול בין החומר הלבן לאפור מסומן בכחול, והגבול בין החומר האפור לנוזל המוחי באדום.",
+    "caption": "בחתך שמשמאל, הקו הכחול מסמן את הגבול הפנימי של הקורטקס והאדום את הגבול החיצוני. החומר האפור נמצא ביניהם. כדי לאמוד עובי משחזרים את שני המשטחים ומחשבים את המרחק ביניהם.",
+    "credit": "מתוך מצגת הקורס; תמונות ממדריך FreeSurfer.",
+    "file": "lesson5-figure-56.jpg",
+    "width": 1600,
+    "height": 515,
+    "bytes": 117993,
+    "source": "https://docs.google.com/presentation/d/1sUX442wVnKPf2qSHckKlV8PnQSQvLdQndmqx_aPn9jk/edit#slide=id.p48"
+  },
+  {
+    "target": "cortical-thickness",
+    "kind": "term",
+    "slide": 58,
+    "title": "הצבעים כאן מציגים עובי",
+    "alt": "מפת עובי קורטיקלי: אדום מסמן קורטקס דק יותר וצהוב עבה יותר, בטווח התצוגה 0.1–3 מילימטרים.",
+    "caption": "זו מפת מדידה במילימטרים: במקרא הזה אדום מציין עובי קטן יותר וצהוב עובי גדול יותר. זו אינה מפת פעילות או מובהקות. המשטח מנופח לצורך הצגה; מדידת העובי מבוססת על המשטחים המקוריים.",
+    "credit": "מתוך מצגת הקורס; תמונת עובי ממדריך FreeSurfer.",
+    "file": "lesson5-figure-58.jpg",
+    "width": 1599,
+    "height": 557,
+    "bytes": 87147,
+    "source": "https://docs.google.com/presentation/d/1sUX442wVnKPf2qSHckKlV8PnQSQvLdQndmqx_aPn9jk/edit#slide=id.p50"
+  }
+], readings, terms);
+
   window.WIKI.push(...terms);
   window.COURSE_LESSONS.push({...{
   "id": "anatomy",

@@ -122,3 +122,14 @@
 .lesson-tools a{display:flex;align-items:center;gap:12px;text-decoration:none;padding:10px 15px;border:1px solid #d3dfd2;border-radius:4px;background:var(--pale);font-size:14px}
 .lesson-tools a:hover{background:#e0ebdf}.lesson-tools small{color:var(--muted);font-size:11px}
 @media(max-width:760px){.course-home-paths{margin:28px 0 35px;gap:14px}.course-home-paths>a{min-height:0;padding:21px}.course-home-paths strong{font-size:23px}.course-home-paths p{font-size:14px}.course-home-paths .card-cta{margin-top:10px;padding-top:12px}.breadcrumbs{font-size:10px;margin-bottom:20px;gap:6px}.lesson-tools{gap:10px}.lesson-tools a{font-size:13px;padding:9px 12px}.sidebar-heading #home-link{font-size:14px}}
+
+/* Illustration panels from the lecture slides. */
+.lecture-figure{margin:28px 0;padding:12px;background:#fff;border:1px solid var(--line);border-radius:8px;overflow:hidden;break-inside:avoid}
+.lecture-figure-image{display:block;border-radius:3px}
+.lecture-figure img{display:block;width:100%;height:auto;max-width:100%;object-fit:contain}
+.lecture-figure figcaption{padding:15px 5px 5px;font-size:14px;line-height:1.85;color:var(--muted)}
+.lecture-figure figcaption strong{display:block;color:var(--ink);font-size:16px;margin-bottom:5px}
+.lecture-figure figcaption>span{display:block}
+.lecture-figure-links{margin-top:10px;font-size:12px}
+.lecture-figure figcaption small{display:block;margin-top:5px;font-size:11px}
+@media(max-width:760px){.lecture-figure{padding:8px;margin:23px 0}.lecture-figure figcaption{padding:12px 3px 3px;font-size:13px}}
